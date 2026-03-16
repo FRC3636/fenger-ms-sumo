@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sumo Admin</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: system-ui, sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        padding: 32px;
+      }
+
+      h1 {
+        font-size: 2rem;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: #f39c12;
+      }
+
+      .card {
+        background: #16213e;
+        border: 1px solid #0f3460;
+        border-radius: 12px;
+        padding: 32px 40px;
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .field {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #aaa;
+        margin-bottom: 6px;
+      }
+
+      input[type="number"] {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        background: #0f3460;
+        color: #fff;
+        border: 2px solid #1a4a8a;
+        border-radius: 8px;
+        text-align: center;
+        outline: none;
+        transition: opacity 0.2s;
+      }
+
+      input[type="number"]:focus { border-color: #f39c12; }
+
+      input[type="number"]:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      button {
+        flex: 1;
+        padding: 14px;
+        font-size: 0.95rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: opacity 0.2s, background 0.2s;
+      }
+
+      button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+      .btn-save {
+        background: #f39c12;
+        color: #1a1a2e;
+      }
+      .btn-save:not(:disabled):hover { background: #e67e22; }
+
+      .btn-start {
+        background: #2ecc71;
+        color: #1a1a2e;
+      }
+      .btn-start:not(:disabled):hover { background: #27ae60; }
+
+      .btn-end {
+        background: #e67e22;
+        color: #fff;
+        display: none;
+      }
+      .btn-end:not(:disabled):hover { background: #d35400; }
+
+      .btn-repeat {
+        background: #e74c3c;
+        color: #fff;
+        display: none;
+      }
+      .btn-repeat:not(:disabled):hover { background: #c0392b; }
+
+      #status {
+        min-height: 1.5rem;
+        text-align: center;
+        color: #2ecc71;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        margin-top: 12px;
+      }
+
+      .timer-display {
+        font-size: 3.5rem;
+        font-weight: bold;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 4px;
+        color: #fff;
+        padding: 12px 0 4px;
+      }
+
+      .timer-display.urgent { color: #e74c3c; }
+      .timer-display.idle { color: #555; }
+
+      .overlay-link {
+        font-size: 0.85rem;
+        color: #aaa;
+      }
+
+      .overlay-link a { color: #3498db; }
+    </style>
+  </head>
+  <body>
+    <h1>Sumo Control</h1>
+
+    <div class="card">
+      <div class="field">
+        <label>Match Number</label>
+        <input type="number" id="match" min="1" value="1" />
+      </div>
+
+      <div class="field">
+        <label>Team 1</label>
+        <input type="number" id="team1" min="1" value="1" />
+      </div>
+
+      <div class="field">
+        <label>Team 2</label>
+        <input type="number" id="team2" min="1" value="2" />
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-save" id="btn-save" onclick="save()">Set Match Info</button>
+      </div>
+
+      <div class="timer-display idle" id="timer">2:00</div>
+
+      <div class="btn-row">
+        <button class="btn-start" id="btn-start" onclick="startMatch()">Start Match</button>
+        <button class="btn-end" id="btn-end" onclick="endMatch()">End Match</button>
+        <button class="btn-repeat" id="btn-repeat" onclick="repeatMatch()">Repeat Match</button>
+      </div>
+
+      <p id="status"></p>
+    </div>
+
+    <p class="overlay-link">OBS source URL: <a href="/overlay" target="_blank">/overlay</a></p>
+
+    <script>
+      let timerEnd = null;
+      let tickInterval = null;
+
+      async function load() {
+        const res = await fetch("/api/state");
+        let data = await res.json();
+        // If a previous match already ended, clean up server state so we start fresh
+        if (data.timerEnd !== null && Date.now() >= data.timerEnd) {
+          const r = await fetch("/api/reset", { method: "POST" });
+          data = await r.json();
+        }
+        document.getElementById("match").value = data.match;
+        document.getElementById("team1").value = data.team1;
+        document.getElementById("team2").value = data.team2;
+        applyState(data.timerEnd);
+      }
+
+      function applyState(end) {
+        timerEnd = end;
+        const running = timerEnd !== null && Date.now() < timerEnd;
+
+        setLocked(false); // only tick() locks when timer hits 0
+        document.getElementById("btn-start").disabled = running;
+        document.getElementById("btn-end").style.display = running ? "flex" : "none";
+        document.getElementById("btn-repeat").style.display = running ? "flex" : "none";
+
+        if (timerEnd !== null) {
+          if (!tickInterval) tickInterval = setInterval(tick, 250);
+          tick();
+        } else {
+          clearInterval(tickInterval);
+          tickInterval = null;
+          setTimerDisplay(120, false);
+        }
+      }
+
+      function setLocked(locked) {
+        document.getElementById("match").disabled = locked;
+        document.getElementById("team1").disabled = locked;
+        document.getElementById("team2").disabled = locked;
+        document.getElementById("btn-save").disabled = locked;
+      }
+
+      function tick() {
+        if (!timerEnd) return;
+        const remaining = Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000));
+        setTimerDisplay(remaining, remaining <= 30);
+        if (remaining === 0) {
+          onMatchEnd();
+        }
+      }
+
+      function setTimerDisplay(seconds, urgent) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        const el = document.getElementById("timer");
+        el.textContent = `${m}:${String(s).padStart(2, "0")}`;
+        el.className = "timer-display" + (timerEnd === null ? " idle" : urgent ? " urgent" : "");
+      }
+
+      async function save() {
+        const body = {
+          match: parseInt(document.getElementById("match").value),
+          team1: parseInt(document.getElementById("team1").value),
+          team2: parseInt(document.getElementById("team2").value),
+        };
+        await fetch("/api/state", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        document.getElementById("btn-start").disabled = false;
+        flash("Match info updated!");
+      }
+
+      function onMatchEnd() {
+        setLocked(false);
+        document.getElementById("btn-start").disabled = true;
+        document.getElementById("btn-end").style.display = "none";
+        clearInterval(tickInterval);
+        tickInterval = null;
+      }
+
+      async function endMatch() {
+        await fetch("/api/reset", { method: "POST" });
+        timerEnd = null;
+        setTimerDisplay(0, true);
+        onMatchEnd();
+      }
+
+      async function startMatch() {
+        const res = await fetch("/api/start", { method: "POST" });
+        const data = await res.json();
+        applyState(data.timerEnd);
+      }
+
+      async function repeatMatch() {
+        await fetch("/api/reset", { method: "POST" });
+        applyState(null);
+        document.getElementById("btn-start").disabled = false;
+      }
+
+      function flash(msg) {
+        const el = document.getElementById("status");
+        el.textContent = msg;
+        setTimeout(() => (el.textContent = ""), 2000);
+      }
+
+      load();
+    </script>
+  </body>
+</html>

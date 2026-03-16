@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sumo Overlay</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        background: transparent;
+        font-family: "Arial Black", "Impact", sans-serif;
+        overflow: hidden;
+      }
+
+      .match-badge {
+        position: fixed;
+        top: 30px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.75);
+        border: 2px solid #f39c12;
+        border-radius: 8px;
+        padding: 6px 22px;
+        color: #f39c12;
+        font-size: 24px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        white-space: nowrap;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      }
+
+      .match-badge span {
+        color: #fff;
+        font-size: 28px;
+        margin-left: 8px;
+      }
+
+      .timer {
+        position: fixed;
+        top: 100px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.75);
+        border: 2px solid #fff;
+        border-radius: 8px;
+        padding: 8px 30px;
+        font-size: 64px;
+        color: #fff;
+        letter-spacing: 4px;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        transition: border-color 0.3s, color 0.3s;
+      }
+
+      .timer.urgent {
+        border-color: #e74c3c;
+        color: #e74c3c;
+      }
+
+      .timer.hidden { display: none; }
+
+      .team1-box {
+        position: fixed;
+        bottom: 40px;
+        left: 40px;
+      }
+
+      .team2-box {
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+      }
+
+      .team-box {
+        background: rgba(0, 0, 0, 0.75);
+        border: 3px solid #fff;
+        border-radius: 12px;
+        padding: 18px 40px;
+        text-align: center;
+        min-width: 150px;
+      }
+
+      .team-label {
+        font-size: 16px;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 6px;
+      }
+
+      .team-number {
+        font-size: 72px;
+        color: #fff;
+        line-height: 1;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      }
+
+      .team1-box { border-color: #e74c3c; }
+      .team1-box .team-number { color: #e74c3c; }
+
+      .team2-box { border-color: #3498db; }
+      .team2-box .team-number { color: #3498db; }
+
+    </style>
+  </head>
+  <body>
+    <div class="match-badge">Match <span id="match-num">1</span></div>
+    <div class="timer hidden" id="timer">2:00</div>
+
+    <div class="team-box team1-box">
+      <div class="team-label">Team</div>
+      <div class="team-number" id="team1-num">1</div>
+    </div>
+    <div class="team-box team2-box">
+      <div class="team-label">Team</div>
+      <div class="team-number" id="team2-num">2</div>
+    </div>
+
+    <script>
+      let timerEnd = null;
+      let tickInterval = null;
+
+      async function poll() {
+        try {
+          const res = await fetch("/api/state");
+          const data = await res.json();
+          document.getElementById("match-num").textContent = data.match;
+          document.getElementById("team1-num").textContent = data.team1;
+          document.getElementById("team2-num").textContent = data.team2;
+
+          if (data.timerEnd !== timerEnd) {
+            timerEnd = data.timerEnd;
+            if (timerEnd) {
+              document.getElementById("timer").classList.remove("hidden");
+              if (!tickInterval) tickInterval = setInterval(tick, 250);
+              tick();
+            } else {
+              clearInterval(tickInterval);
+              tickInterval = null;
+              document.getElementById("timer").classList.add("hidden");
+            }
+          }
+        } catch (e) {
+          // silently retry
+        }
+      }
+
+      function tick() {
+        if (!timerEnd) return;
+        const remaining = Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000));
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        const el = document.getElementById("timer");
+        el.textContent = `${m}:${String(s).padStart(2, "0")}`;
+        el.classList.toggle("urgent", remaining <= 30);
+      }
+
+      poll();
+      setInterval(poll, 1000);
+    </script>
+  </body>
+</html>
