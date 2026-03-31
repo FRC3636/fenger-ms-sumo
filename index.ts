@@ -40,6 +40,14 @@ Bun.serve({
       },
     },
 
+    "/api/end": {
+      POST: () => {
+        state.timerEnd = null;
+        state.match++;
+        return Response.json(state);
+      },
+    },
+
     "/api/reset": {
       POST: () => {
         state.timerEnd = null;

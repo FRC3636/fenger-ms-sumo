@@ -39,6 +39,23 @@
         margin-bottom: 20px;
       }
 
+      .teams-row {
+        display: flex;
+        gap: 12px;
+      }
+
+      .team-field {
+        flex: 1;
+      }
+
+      .team-field.red label { color: #e74c3c; }
+      .team-field.red input { border-color: #e74c3c; }
+      .team-field.red input:focus { border-color: #ff6b6b; }
+
+      .team-field.blue label { color: #3498db; }
+      .team-field.blue input { border-color: #3498db; }
+      .team-field.blue input:focus { border-color: #5dade2; }
+
       label {
         display: block;
         font-size: 0.8rem;
@@ -155,14 +172,15 @@
         <input type="number" id="match" min="1" value="1" />
       </div>
 
-      <div class="field">
-        <label>Team 1</label>
-        <input type="number" id="team1" min="1" value="1" />
-      </div>
-
-      <div class="field">
-        <label>Team 2</label>
-        <input type="number" id="team2" min="1" value="2" />
+      <div class="field teams-row">
+        <div class="team-field blue">
+          <label>Blue</label>
+          <input type="number" id="team2" min="1" value="2" />
+        </div>
+        <div class="team-field red">
+          <label>Red</label>
+          <input type="number" id="team1" min="1" value="1" />
+        </div>
       </div>
 
       <div class="btn-row">
@@ -226,11 +244,14 @@
         document.getElementById("btn-save").disabled = locked;
       }
 
+      let matchEndCalled = false;
+
       function tick() {
         if (!timerEnd) return;
         const remaining = Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000));
         setTimerDisplay(remaining, remaining <= 30);
-        if (remaining === 0) {
+        if (remaining === 0 && !matchEndCalled) {
+          matchEndCalled = true;
           onMatchEnd();
         }
       }
@@ -258,22 +279,25 @@
         flash("Match info updated!");
       }
 
-      function onMatchEnd() {
+      async function onMatchEnd() {
+        clearInterval(tickInterval);
+        tickInterval = null;
+        const res = await fetch("/api/end", { method: "POST" });
+        const data = await res.json();
+        timerEnd = null;
+        document.getElementById("match").value = data.match;
         setLocked(false);
         document.getElementById("btn-start").disabled = true;
         document.getElementById("btn-end").style.display = "none";
-        clearInterval(tickInterval);
-        tickInterval = null;
       }
 
       async function endMatch() {
-        await fetch("/api/reset", { method: "POST" });
-        timerEnd = null;
         setTimerDisplay(0, true);
-        onMatchEnd();
+        await onMatchEnd();
       }
 
       async function startMatch() {
+        matchEndCalled = false;
         const res = await fetch("/api/start", { method: "POST" });
         const data = await res.json();
         applyState(data.timerEnd);
