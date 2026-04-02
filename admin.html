@@ -126,6 +126,9 @@
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 2px;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
         border: none;
         border-radius: 8px;
         cursor: pointer;
@@ -136,9 +139,7 @@
 
       .btn-sheet {
         background: #27ae60;
-        color: #fff;
-        font-size: 0.85rem;
-        margin-bottom: 16px;
+        color: #1a1a2e;
       }
       .btn-sheet:not(:disabled):hover { background: #1e8449; }
 
@@ -165,19 +166,26 @@
       }
       .btn-start:not(:disabled):hover { background: #27ae60; }
 
+      .btn-blue-wins {
+        background: #3498db;
+        color: #1a1a2e;
+        display: none;
+      }
+      .btn-blue-wins:not(:disabled):hover { background: #2980b9; }
+
+      .btn-red-wins {
+        background: #e74c3c;
+        color: #1a1a2e;
+        display: none;
+      }
+      .btn-red-wins:not(:disabled):hover { background: #c0392b; }
+
       .btn-end {
         background: #e67e22;
-        color: #fff;
+        color: #1a1a2e;
         display: none;
       }
       .btn-end:not(:disabled):hover { background: #d35400; }
-
-      .btn-repeat {
-        background: #e74c3c;
-        color: #fff;
-        display: none;
-      }
-      .btn-repeat:not(:disabled):hover { background: #c0392b; }
 
       #status {
         min-height: 1.5rem;
@@ -213,9 +221,6 @@
     <h1>Sumo Control</h1>
 
     <div class="card">
-      <div class="btn-row">
-        <button class="btn-sheet" id="btn-sheet" onclick="loadFromSheet()">Load from Sheet</button>
-      </div>
       <p class="sheet-warning">Always verify team names and match number before starting.</p>
 
       <div class="field">
@@ -239,15 +244,27 @@
       </div>
 
       <div class="btn-row">
+        <button class="btn-sheet" id="btn-sheet" onclick="loadFromSheet()">Load from Sheet</button>
         <button class="btn-save" id="btn-save" onclick="save()">Set Match Info</button>
+      </div>
+
+      <div id="ondeck-display" style="display:none; margin-top:10px; padding:8px 10px; background:rgba(255,255,255,0.05); border-radius:8px;">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:6px;">On Deck</div>
+        <div style="display:flex;gap:12px;justify-content:center;font-size:0.85rem;">
+          <span style="color:#5dade2">Blue: <strong id="ondeck1-disp"></strong></span>
+          <span style="color:#ec7063">Red: <strong id="ondeck2-disp"></strong></span>
+        </div>
       </div>
 
       <div class="timer-display idle" id="timer">2:00</div>
 
       <div class="btn-row">
         <button class="btn-start" id="btn-start" onclick="startMatch()">Start Match</button>
+        <button class="btn-blue-wins" id="btn-blue-wins" onclick="pickWinner('team1')">Blue Wins</button>
+        <button class="btn-red-wins" id="btn-red-wins" onclick="pickWinner('team2')">Red Wins</button>
+      </div>
+      <div class="btn-row" id="btn-end-row" style="display:none">
         <button class="btn-end" id="btn-end" onclick="endMatch()">End Match</button>
-        <button class="btn-repeat" id="btn-repeat" onclick="repeatMatch()">Repeat Match</button>
       </div>
 
       <p id="status"></p>
@@ -263,12 +280,7 @@
         try {
           const res = await fetch("/api/state");
           if (!res.ok) { flash("Failed to load state"); return; }
-          let data = await res.json();
-          // If a previous match already ended, clean up server state so we start fresh
-          if (data.timerEnd !== null && Date.now() >= data.timerEnd) {
-            const r = await fetch("/api/reset", { method: "POST" });
-            if (r.ok) data = await r.json();
-          }
+          const data = await res.json();
           document.getElementById("match").value = data.match;
           document.getElementById("team1").value = data.team1;
           document.getElementById("team2").value = data.team2;
@@ -282,12 +294,16 @@
 
       function applyState(end) {
         timerEnd = end;
-        const running = timerEnd !== null && Date.now() < timerEnd;
+        const matchActive = timerEnd !== null;
 
-        setLocked(false); // only tick() locks when timer hits 0
-        document.getElementById("btn-start").disabled = running;
-        document.getElementById("btn-end").style.display = running ? "flex" : "none";
-        document.getElementById("btn-repeat").style.display = running ? "flex" : "none";
+        document.getElementById("btn-start").style.display = matchActive ? "none" : "flex";
+        document.getElementById("btn-blue-wins").style.display = matchActive ? "flex" : "none";
+        document.getElementById("btn-red-wins").style.display = matchActive ? "flex" : "none";
+        document.getElementById("btn-end-row").style.display = matchActive ? "flex" : "none";
+        document.getElementById("btn-end").style.display = matchActive ? "flex" : "none";
+
+        document.getElementById("btn-sheet").disabled = matchActive;
+        document.getElementById("btn-save").disabled = matchActive;
 
         if (timerEnd !== null) {
           if (!tickInterval) tickInterval = setInterval(tick, 250);
@@ -299,25 +315,10 @@
         }
       }
 
-      function setLocked(locked) {
-        document.getElementById("match").disabled = locked;
-        document.getElementById("team1").disabled = locked;
-        document.getElementById("team2").disabled = locked;
-        document.getElementById("team1Name").disabled = locked;
-        document.getElementById("team2Name").disabled = locked;
-        document.getElementById("btn-save").disabled = locked;
-      }
-
-      let matchEndCalled = false;
-
       function tick() {
         if (!timerEnd) return;
         const remaining = Math.max(0, Math.ceil((timerEnd - Date.now()) / 1000));
         setTimerDisplay(remaining, remaining <= 30);
-        if (remaining === 0 && !matchEndCalled) {
-          matchEndCalled = true;
-          onMatchEnd();
-        }
       }
 
       function setTimerDisplay(seconds, urgent) {
@@ -350,30 +351,17 @@
         }
       }
 
-      async function onMatchEnd() {
-        clearInterval(tickInterval);
-        tickInterval = null;
+      async function endMatch() {
         try {
           const res = await fetch("/api/end", { method: "POST" });
           if (!res.ok) { flash("End match failed"); return; }
-          const data = await res.json();
-          timerEnd = null;
-          document.getElementById("match").value = data.match;
-          setLocked(false);
-          document.getElementById("btn-start").disabled = true;
-          document.getElementById("btn-end").style.display = "none";
+          applyState(null);
         } catch {
           flash("Connection error");
         }
       }
 
-      async function endMatch() {
-        setTimerDisplay(0, true);
-        await onMatchEnd();
-      }
-
       async function startMatch() {
-        matchEndCalled = false;
         try {
           const res = await fetch("/api/start", { method: "POST" });
           if (!res.ok) { flash("Start failed"); return; }
@@ -384,12 +372,16 @@
         }
       }
 
-      async function repeatMatch() {
+      async function pickWinner(team) {
         try {
-          const res = await fetch("/api/reset", { method: "POST" });
-          if (!res.ok) { flash("Reset failed"); return; }
+          const res = await fetch("/api/winner", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ winner: team }),
+          });
+          if (!res.ok) { flash("Failed to set winner"); return; }
           applyState(null);
-          document.getElementById("btn-start").disabled = false;
+          flash(team === "team1" ? "Blue wins!" : "Red wins!");
         } catch {
           flash("Connection error");
         }
@@ -398,11 +390,23 @@
       async function loadFromSheet() {
         const btn = document.getElementById("btn-sheet");
         btn.disabled = true;
-        btn.textContent = "Loading...";
+        const currentMatch = parseInt(document.getElementById("match").value) || 0;
+        const MAX_ATTEMPTS = 8;
+        const RETRY_DELAY_MS = 2000;
+
         try {
-          const res = await fetch("/api/sheet");
-          if (!res.ok) { flash("Sheet load failed"); return; }
-          const data = await res.json();
+          let data = null;
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            btn.textContent = attempt === 1 ? "Loading..." : `Retrying (${attempt}/${MAX_ATTEMPTS})…`;
+            const res = await fetch("/api/sheet");
+            if (!res.ok) { flash("Sheet load failed"); return; }
+            const fetched = await res.json();
+            if (fetched.match > currentMatch) { data = fetched; break; }
+            if (attempt < MAX_ATTEMPTS) await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+          }
+
+          if (!data) { flash("Sheet not updated yet — try again later"); return; }
+
           document.getElementById("match").value = data.match;
           document.getElementById("team1").value = data.team1;
           document.getElementById("team2").value = data.team2;
@@ -410,6 +414,18 @@
           document.getElementById("team2Name").value = data.team2Name ?? "Red";
           document.getElementById("team1Members").textContent = data.team1Members || "";
           document.getElementById("team2Members").textContent = data.team2Members || "";
+
+          try {
+            const deckRes = await fetch("/api/ondeck", { method: "POST" });
+            if (deckRes.ok) {
+              const deck = await deckRes.json();
+              document.getElementById("ondeck1-disp").textContent = "#" + deck.ondeck1 + " – " + deck.ondeck1Name;
+              document.getElementById("ondeck2-disp").textContent = "#" + deck.ondeck2 + " – " + deck.ondeck2Name;
+              document.getElementById("ondeck-display").style.display = "block";
+            }
+          } catch { /* ondeck fetch failure is non-fatal */ }
+
+          await save();
           flash("Loaded from sheet!");
         } catch {
           flash("Sheet load error");
@@ -417,7 +433,6 @@
           btn.disabled = false;
           btn.textContent = "Load from Sheet";
         }
-        save()
       }
 
       function flash(msg) {

@@ -57,17 +57,35 @@
 
       .timer.hidden { display: none; }
 
-      .team1-box {
+      .team-wrapper {
         position: fixed;
         bottom: 40px;
-        left: 40px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
       }
 
-      .team2-box {
-        position: fixed;
-        bottom: 40px;
-        right: 40px;
+      .team1-wrapper { left: 40px; }
+      .team2-wrapper { right: 40px; }
+
+      .ondeck-label {
+        display: none;
+        background: rgba(0, 0, 0, 0.65);
+        border-radius: 8px;
+        padding: 8px 20px;
+        font-size: 18px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #aaa;
+        white-space: nowrap;
       }
+
+      .ondeck-label.visible { display: block; }
+      .ondeck-label strong { color: #fff; font-size: 22px; }
+
+      .team1-wrapper .ondeck-label strong { color: #5dade2; }
+      .team2-wrapper .ondeck-label strong { color: #ec7063; }
 
       .team-box {
         background: rgba(0, 0, 0, 0.75);
@@ -93,11 +111,11 @@
         text-shadow: 0 2px 8px rgba(0,0,0,0.8);
       }
 
-      .team1-box { border-color: #3498db; }
-      .team1-box .team-number { color: #3498db; }
+      .team1-wrapper .team-box { border-color: #3498db; }
+      .team1-wrapper .team-number { color: #3498db; }
 
-      .team2-box { border-color: #e74c3c; }
-      .team2-box .team-number { color: #e74c3c; }
+      .team2-wrapper .team-box { border-color: #e74c3c; }
+      .team2-wrapper .team-number { color: #e74c3c; }
 
       .team-name {
         font-size: 16px;
@@ -128,16 +146,56 @@
       .arrow:first-child { color: #3498db; }
       .arrow:last-child { color: #e74c3c; }
 
+      .winner-banner {
+        position: fixed;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        background: rgba(0, 0, 0, 0.85);
+        border: 3px solid #fff;
+        border-radius: 12px;
+        padding: 16px 40px;
+        text-align: center;
+        text-shadow: 0 3px 12px rgba(0,0,0,0.9);
+      }
+
+      .winner-banner.visible { display: block; }
+
+      .winner-label {
+        font-size: 20px;
+        color: #fff;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+
+      .winner-name {
+        font-size: 52px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        line-height: 1;
+      }
+
+      .winner-banner.team1 { border-color: #3498db; }
+      .winner-banner.team1 .winner-name { color: #3498db; }
+      .winner-banner.team2 { border-color: #e74c3c; }
+      .winner-banner.team2 .winner-name { color: #e74c3c; }
+
     </style>
   </head>
   <body>
     <div class="match-badge">Match <span id="match-num">1</span></div>
     <div class="timer hidden" id="timer">2:00</div>
 
-    <div class="team-box team1-box">
-      <div class="team-label">Team</div>
-      <div class="team-number" id="team1-num">1</div>
-      <div class="team-name" id="team1-name">Blue</div>
+    <div class="team-wrapper team1-wrapper">
+      <div class="ondeck-label" id="ondeck1-label">On Deck: <strong id="ondeck1-num"></strong></div>
+      <div class="team-box">
+        <div class="team-label">Team</div>
+        <div class="team-number" id="team1-num">1</div>
+        <div class="team-name" id="team1-name">Blue</div>
+      </div>
     </div>
 
     <div class="arrows" id="arrows">
@@ -145,10 +203,18 @@
       <span class="arrow" id="arrow2">&#9660;</span>
     </div>
 
-    <div class="team-box team2-box">
-      <div class="team-label">Team</div>
-      <div class="team-number" id="team2-num">2</div>
-      <div class="team-name" id="team2-name">Red</div>
+    <div class="winner-banner" id="winner-banner">
+      <div class="winner-label">Winner</div>
+      <div class="winner-name" id="winner-name"></div>
+    </div>
+
+    <div class="team-wrapper team2-wrapper">
+      <div class="ondeck-label" id="ondeck2-label">On Deck: <strong id="ondeck2-num"></strong></div>
+      <div class="team-box">
+        <div class="team-label">Team</div>
+        <div class="team-number" id="team2-num">2</div>
+        <div class="team-name" id="team2-name">Red</div>
+      </div>
     </div>
 
     <script>
@@ -172,6 +238,36 @@
             document.getElementById("arrow2").innerHTML = data.arrows === "up-down" ? "&#9660;" : "&#9650;";
           } else {
             arrowsEl.classList.remove("visible");
+          }
+
+          const od1 = document.getElementById("ondeck1-label");
+          const od2 = document.getElementById("ondeck2-label");
+          if (data.ondeck1 != null) {
+            document.getElementById("ondeck1-num").textContent = "#" + data.ondeck1;
+            od1.classList.add("visible");
+          } else {
+            od1.classList.remove("visible");
+          }
+          if (data.ondeck2 != null) {
+            document.getElementById("ondeck2-num").textContent = "#" + data.ondeck2;
+            od2.classList.add("visible");
+          } else {
+            od2.classList.remove("visible");
+          }
+
+          const bannerEl = document.getElementById("winner-banner");
+          const hasWinner = !!data.winner;
+          document.querySelector(".match-badge").style.display = hasWinner ? "none" : "";
+          document.getElementById("timer").style.display = hasWinner ? "none" : "";
+          document.querySelector(".team1-wrapper").style.visibility = hasWinner ? "hidden" : "";
+          document.querySelector(".team2-wrapper").style.visibility = hasWinner ? "hidden" : "";
+          document.getElementById("arrows").style.display = hasWinner ? "none" : "";
+          if (hasWinner) {
+            const isTeam1 = data.winner === "team1";
+            bannerEl.className = "winner-banner visible " + data.winner;
+            document.getElementById("winner-name").textContent = isTeam1 ? (data.team1Name ?? "Blue") : (data.team2Name ?? "Red");
+          } else {
+            bannerEl.className = "winner-banner";
           }
 
           if (data.timerEnd !== timerEnd) {
