@@ -13,8 +13,14 @@ const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvcIBxLcJXsAwEm-yEW7m2VmCZAbJvKOuxyNtVq6iA2CdtUJ_txUodlzgYQD1-hTiPCMiClrX0A3Z/pub?gid=1317889012&single=true&output=csv";
 
 async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number } | null> {
-  const res = await fetch(SHEET_CSV_URL);
-  const text = await res.text();
+  let text: string;
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    if (!res.ok) return null;
+    text = await res.text();
+  } catch {
+    return null;
+  }
   const lines = text.split("\n");
   // Skip header (index 0), find last row where Match # column is non-empty
   let lastRow: string[] | null = null;
@@ -68,7 +74,12 @@ Bun.serve({
     "/api/state": {
       GET: () => Response.json(state),
       POST: async (req) => {
-        const body = await req.json() as Partial<State>;
+        let body: Partial<State>;
+        try {
+          body = await req.json() as Partial<State>;
+        } catch {
+          return new Response("Invalid JSON", { status: 400 });
+        }
         if (typeof body.match === "number") state.match = body.match;
         if (typeof body.team1 === "number") state.team1 = body.team1;
         if (typeof body.team2 === "number") state.team2 = body.team2;
@@ -102,9 +113,13 @@ Bun.serve({
 
     "/api/sheet": {
       GET: async () => {
-        const row = await fetchSheetRow();
-        if (!row) return new Response("No data found in sheet", { status: 404 });
-        return Response.json(row);
+        try {
+          const row = await fetchSheetRow();
+          if (!row) return new Response("No data found in sheet", { status: 404 });
+          return Response.json(row);
+        } catch {
+          return new Response("Sheet fetch failed", { status: 502 });
+        }
       },
     },
   },

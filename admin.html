@@ -217,17 +217,22 @@
       let tickInterval = null;
 
       async function load() {
-        const res = await fetch("/api/state");
-        let data = await res.json();
-        // If a previous match already ended, clean up server state so we start fresh
-        if (data.timerEnd !== null && Date.now() >= data.timerEnd) {
-          const r = await fetch("/api/reset", { method: "POST" });
-          data = await r.json();
+        try {
+          const res = await fetch("/api/state");
+          if (!res.ok) { flash("Failed to load state"); return; }
+          let data = await res.json();
+          // If a previous match already ended, clean up server state so we start fresh
+          if (data.timerEnd !== null && Date.now() >= data.timerEnd) {
+            const r = await fetch("/api/reset", { method: "POST" });
+            if (r.ok) data = await r.json();
+          }
+          document.getElementById("match").value = data.match;
+          document.getElementById("team1").value = data.team1;
+          document.getElementById("team2").value = data.team2;
+          applyState(data.timerEnd);
+        } catch {
+          flash("Connection error");
         }
-        document.getElementById("match").value = data.match;
-        document.getElementById("team1").value = data.team1;
-        document.getElementById("team2").value = data.team2;
-        applyState(data.timerEnd);
       }
 
       function applyState(end) {
@@ -282,25 +287,35 @@
           team1: parseInt(document.getElementById("team1").value),
           team2: parseInt(document.getElementById("team2").value),
         };
-        await fetch("/api/state", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        document.getElementById("btn-start").disabled = false;
-        flash("Match info updated!");
+        try {
+          const res = await fetch("/api/state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) { flash("Save failed"); return; }
+          document.getElementById("btn-start").disabled = false;
+          flash("Match info updated!");
+        } catch {
+          flash("Connection error");
+        }
       }
 
       async function onMatchEnd() {
         clearInterval(tickInterval);
         tickInterval = null;
-        const res = await fetch("/api/end", { method: "POST" });
-        const data = await res.json();
-        timerEnd = null;
-        document.getElementById("match").value = data.match;
-        setLocked(false);
-        document.getElementById("btn-start").disabled = true;
-        document.getElementById("btn-end").style.display = "none";
+        try {
+          const res = await fetch("/api/end", { method: "POST" });
+          if (!res.ok) { flash("End match failed"); return; }
+          const data = await res.json();
+          timerEnd = null;
+          document.getElementById("match").value = data.match;
+          setLocked(false);
+          document.getElementById("btn-start").disabled = true;
+          document.getElementById("btn-end").style.display = "none";
+        } catch {
+          flash("Connection error");
+        }
       }
 
       async function endMatch() {
@@ -310,15 +325,25 @@
 
       async function startMatch() {
         matchEndCalled = false;
-        const res = await fetch("/api/start", { method: "POST" });
-        const data = await res.json();
-        applyState(data.timerEnd);
+        try {
+          const res = await fetch("/api/start", { method: "POST" });
+          if (!res.ok) { flash("Start failed"); return; }
+          const data = await res.json();
+          applyState(data.timerEnd);
+        } catch {
+          flash("Connection error");
+        }
       }
 
       async function repeatMatch() {
-        await fetch("/api/reset", { method: "POST" });
-        applyState(null);
-        document.getElementById("btn-start").disabled = false;
+        try {
+          const res = await fetch("/api/reset", { method: "POST" });
+          if (!res.ok) { flash("Reset failed"); return; }
+          applyState(null);
+          document.getElementById("btn-start").disabled = false;
+        } catch {
+          flash("Connection error");
+        }
       }
 
       async function loadFromSheet() {
