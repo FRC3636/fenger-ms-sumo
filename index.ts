@@ -9,6 +9,47 @@ interface State {
   arrows: "up-down" | "down-up" | null; // random arrow direction shown between teams
 }
 
+const SHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvcIBxLcJXsAwEm-yEW7m2VmCZAbJvKOuxyNtVq6iA2CdtUJ_txUodlzgYQD1-hTiPCMiClrX0A3Z/pub?gid=1317889012&single=true&output=csv";
+
+async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number } | null> {
+  const res = await fetch(SHEET_CSV_URL);
+  const text = await res.text();
+  const lines = text.split("\n");
+  // Skip header (index 0), find last row where Match # column is non-empty
+  let lastRow: string[] | null = null;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVRow(lines[i] ?? "");
+    if (cols[0]?.trim()) lastRow = cols;
+  }
+  if (!lastRow) return null;
+  const match = parseInt(lastRow[0] ?? "");
+  const team1 = parseInt(lastRow[3] ?? "");  // Blue Team #1
+  const team2 = parseInt(lastRow[10] ?? ""); // Red Team #1
+  if (isNaN(match) || isNaN(team1) || isNaN(team2)) return null;
+  return { match, team1, team2 };
+}
+
+// Simple CSV row parser that handles quoted fields with commas/newlines
+function parseCSVRow(line: string): string[] {
+  const cols: string[] = [];
+  let cur = "";
+  let inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      inQuote = !inQuote;
+    } else if (ch === "," && !inQuote) {
+      cols.push(cur);
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  cols.push(cur);
+  return cols;
+}
+
 const state: State = {
   match: 1,
   team1: 1,
@@ -56,6 +97,14 @@ Bun.serve({
       POST: () => {
         state.timerEnd = null;
         return Response.json(state);
+      },
+    },
+
+    "/api/sheet": {
+      GET: async () => {
+        const row = await fetchSheetRow();
+        if (!row) return new Response("No data found in sheet", { status: 404 });
+        return Response.json(row);
       },
     },
   },

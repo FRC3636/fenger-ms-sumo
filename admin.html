@@ -107,6 +107,14 @@
 
       button:disabled { opacity: 0.35; cursor: not-allowed; }
 
+      .btn-sheet {
+        background: #27ae60;
+        color: #fff;
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+      }
+      .btn-sheet:not(:disabled):hover { background: #1e8449; }
+
       .btn-save {
         background: #f39c12;
         color: #1a1a2e;
@@ -167,6 +175,10 @@
     <h1>Sumo Control</h1>
 
     <div class="card">
+      <div class="btn-row">
+        <button class="btn-sheet" id="btn-sheet" onclick="loadFromSheet()">Load from Sheet</button>
+      </div>
+
       <div class="field">
         <label>Match Number</label>
         <input type="number" id="match" min="1" value="1" />
@@ -307,6 +319,26 @@
         await fetch("/api/reset", { method: "POST" });
         applyState(null);
         document.getElementById("btn-start").disabled = false;
+      }
+
+      async function loadFromSheet() {
+        const btn = document.getElementById("btn-sheet");
+        btn.disabled = true;
+        btn.textContent = "Loading...";
+        try {
+          const res = await fetch("/api/sheet");
+          if (!res.ok) { flash("Sheet load failed"); return; }
+          const data = await res.json();
+          document.getElementById("match").value = data.match;
+          document.getElementById("team1").value = data.team1;
+          document.getElementById("team2").value = data.team2;
+          flash("Loaded from sheet!");
+        } catch {
+          flash("Sheet load error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Load from Sheet";
+        }
       }
 
       function flash(msg) {
