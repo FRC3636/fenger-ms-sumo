@@ -99,6 +99,14 @@
       .team2-box { border-color: #e74c3c; }
       .team2-box .team-number { color: #e74c3c; }
 
+      .team-name {
+        font-size: 16px;
+        color: #ccc;
+        letter-spacing: 1px;
+        margin-top: 6px;
+        text-transform: uppercase;
+      }
+
       .arrows {
         position: fixed;
         top: 50%;
@@ -129,6 +137,7 @@
     <div class="team-box team1-box">
       <div class="team-label">Team</div>
       <div class="team-number" id="team1-num">1</div>
+      <div class="team-name" id="team1-name">Blue</div>
     </div>
 
     <div class="arrows" id="arrows">
@@ -139,6 +148,7 @@
     <div class="team-box team2-box">
       <div class="team-label">Team</div>
       <div class="team-number" id="team2-num">2</div>
+      <div class="team-name" id="team2-name">Red</div>
     </div>
 
     <script>
@@ -152,6 +162,8 @@
           document.getElementById("match-num").textContent = data.match;
           document.getElementById("team1-num").textContent = data.team1;
           document.getElementById("team2-num").textContent = data.team2;
+          document.getElementById("team1-name").textContent = data.team1Name ?? "Blue";
+          document.getElementById("team2-name").textContent = data.team2Name ?? "Red";
 
           const arrowsEl = document.getElementById("arrows");
           if (data.arrows) {

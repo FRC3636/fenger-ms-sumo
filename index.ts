@@ -5,6 +5,8 @@ interface State {
   match: number;
   team1: number;
   team2: number;
+  team1Name: string;
+  team2Name: string;
   timerEnd: number | null;
   arrows: "up-down" | "down-up" | null; // random arrow direction shown between teams
 }
@@ -12,7 +14,7 @@ interface State {
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvcIBxLcJXsAwEm-yEW7m2VmCZAbJvKOuxyNtVq6iA2CdtUJ_txUodlzgYQD1-hTiPCMiClrX0A3Z/pub?gid=1317889012&single=true&output=csv";
 
-async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number } | null> {
+async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string } | null> {
   let text: string;
   try {
     const res = await fetch(SHEET_CSV_URL);
@@ -30,10 +32,13 @@ async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: n
   }
   if (!lastRow) return null;
   const match = parseInt(lastRow[0] ?? "");
-  const team1 = parseInt(lastRow[3] ?? "");  // Blue Team #1
-  const team2 = parseInt(lastRow[10] ?? ""); // Red Team #1
+  const team1 = parseInt(lastRow[3] ?? "");        // Blue Team #1
+  const team2 = parseInt(lastRow[10] ?? "");       // Red Team #1
+  const team1Name = lastRow[5]?.trim() || "Blue";  // Robot Name (Blue)
+  const team2Name = lastRow[12]?.trim() || "Red";  // Robot Name (Red)
+  console.log("[sheet] cols 3,5,10,12:", lastRow[3], "|", lastRow[5], "|", lastRow[10], "|", lastRow[12]);
   if (isNaN(match) || isNaN(team1) || isNaN(team2)) return null;
-  return { match, team1, team2 };
+  return { match, team1, team2, team1Name, team2Name };
 }
 
 // Simple CSV row parser that handles quoted fields with commas/newlines
@@ -60,6 +65,8 @@ const state: State = {
   match: 1,
   team1: 1,
   team2: 2,
+  team1Name: "Blue",
+  team2Name: "Red",
   timerEnd: null,
   arrows: null,
 };
@@ -83,6 +90,8 @@ Bun.serve({
         if (typeof body.match === "number") state.match = body.match;
         if (typeof body.team1 === "number") state.team1 = body.team1;
         if (typeof body.team2 === "number") state.team2 = body.team2;
+        if (typeof body.team1Name === "string") state.team1Name = body.team1Name;
+        if (typeof body.team2Name === "string") state.team2Name = body.team2Name;
         state.arrows = Math.random() < 0.5 ? "up-down" : "down-up";
         return Response.json(state);
       },

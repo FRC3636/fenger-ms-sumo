@@ -56,6 +56,25 @@
       .team-field.blue input { border-color: #3498db; }
       .team-field.blue input:focus { border-color: #5dade2; }
 
+      .team-name-input {
+        width: 100%;
+        padding: 6px 8px;
+        font-size: 0.85rem;
+        background: #0f3460;
+        color: #ccc;
+        border: 2px solid #1a4a8a;
+        border-radius: 8px;
+        text-align: center;
+        outline: none;
+        margin-top: 6px;
+        transition: opacity 0.2s;
+      }
+      .team-name-input:disabled { opacity: 0.45; cursor: not-allowed; }
+      .team-field.blue .team-name-input { border-color: rgba(52, 152, 219, 0.5); }
+      .team-field.blue .team-name-input:focus { border-color: #5dade2; }
+      .team-field.red .team-name-input { border-color: rgba(231, 76, 60, 0.5); }
+      .team-field.red .team-name-input:focus { border-color: #ff6b6b; }
+
       label {
         display: block;
         font-size: 0.8rem;
@@ -114,6 +133,17 @@
         margin-bottom: 16px;
       }
       .btn-sheet:not(:disabled):hover { background: #1e8449; }
+
+      .sheet-warning {
+        margin: 8px 0 12px;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        color: #f0e68c;
+        text-align: center;
+        background: rgba(240, 230, 140, 0.08);
+        border: 1px solid rgba(240, 230, 140, 0.3);
+        border-radius: 6px;
+      }
 
       .btn-save {
         background: #f39c12;
@@ -178,6 +208,7 @@
       <div class="btn-row">
         <button class="btn-sheet" id="btn-sheet" onclick="loadFromSheet()">Load from Sheet</button>
       </div>
+      <p class="sheet-warning">Always verify team names and match number before starting.</p>
 
       <div class="field">
         <label>Match Number</label>
@@ -188,10 +219,12 @@
         <div class="team-field blue">
           <label>Blue</label>
           <input type="number" id="team1" min="1" value="1" />
+          <input type="text" class="team-name-input" id="team1Name" value="Blue" placeholder="Team name" />
         </div>
         <div class="team-field red">
           <label>Red</label>
           <input type="number" id="team2" min="1" value="2" />
+          <input type="text" class="team-name-input" id="team2Name" value="Red" placeholder="Team name" />
         </div>
       </div>
 
@@ -229,6 +262,8 @@
           document.getElementById("match").value = data.match;
           document.getElementById("team1").value = data.team1;
           document.getElementById("team2").value = data.team2;
+          document.getElementById("team1Name").value = data.team1Name ?? "Blue";
+          document.getElementById("team2Name").value = data.team2Name ?? "Red";
           applyState(data.timerEnd);
         } catch {
           flash("Connection error");
@@ -258,6 +293,8 @@
         document.getElementById("match").disabled = locked;
         document.getElementById("team1").disabled = locked;
         document.getElementById("team2").disabled = locked;
+        document.getElementById("team1Name").disabled = locked;
+        document.getElementById("team2Name").disabled = locked;
         document.getElementById("btn-save").disabled = locked;
       }
 
@@ -286,6 +323,8 @@
           match: parseInt(document.getElementById("match").value),
           team1: parseInt(document.getElementById("team1").value),
           team2: parseInt(document.getElementById("team2").value),
+          team1Name: document.getElementById("team1Name").value.trim() || "Blue",
+          team2Name: document.getElementById("team2Name").value.trim() || "Red",
         };
         try {
           const res = await fetch("/api/state", {
@@ -357,6 +396,8 @@
           document.getElementById("match").value = data.match;
           document.getElementById("team1").value = data.team1;
           document.getElementById("team2").value = data.team2;
+          document.getElementById("team1Name").value = data.team1Name ?? "Blue";
+          document.getElementById("team2Name").value = data.team2Name ?? "Red";
           flash("Loaded from sheet!");
         } catch {
           flash("Sheet load error");
