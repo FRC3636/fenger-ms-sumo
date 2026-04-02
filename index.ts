@@ -5,7 +5,8 @@ interface State {
   match: number;
   team1: number;
   team2: number;
-  timerEnd: number | null; // epoch ms when 2-min timer expires; null = not started
+  timerEnd: number | null;
+  arrows: "up-down" | "down-up" | null; // random arrow direction shown between teams
 }
 
 const state: State = {
@@ -13,6 +14,7 @@ const state: State = {
   team1: 1,
   team2: 2,
   timerEnd: null,
+  arrows: null,
 };
 
 const MATCH_DURATION_MS = 2 * 60 * 1000;
@@ -29,6 +31,7 @@ Bun.serve({
         if (typeof body.match === "number") state.match = body.match;
         if (typeof body.team1 === "number") state.team1 = body.team1;
         if (typeof body.team2 === "number") state.team2 = body.team2;
+        state.arrows = Math.random() < 0.5 ? "up-down" : "down-up";
         return Response.json(state);
       },
     },
@@ -36,6 +39,7 @@ Bun.serve({
     "/api/start": {
       POST: () => {
         state.timerEnd = Date.now() + MATCH_DURATION_MS;
+        state.arrows = null;
         return Response.json(state);
       },
     },

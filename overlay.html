@@ -99,6 +99,27 @@
       .team2-box { border-color: #e74c3c; }
       .team2-box .team-number { color: #e74c3c; }
 
+      .arrows {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .arrows.visible { display: flex; }
+
+      .arrow {
+        font-size: 64px;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        line-height: 1;
+      }
+
+      .arrow:first-child { color: #3498db; }
+      .arrow:last-child { color: #e74c3c; }
+
     </style>
   </head>
   <body>
@@ -109,6 +130,12 @@
       <div class="team-label">Team</div>
       <div class="team-number" id="team1-num">1</div>
     </div>
+
+    <div class="arrows" id="arrows">
+      <span class="arrow" id="arrow1">&#9650;</span>
+      <span class="arrow" id="arrow2">&#9660;</span>
+    </div>
+
     <div class="team-box team2-box">
       <div class="team-label">Team</div>
       <div class="team-number" id="team2-num">2</div>
@@ -125,6 +152,15 @@
           document.getElementById("match-num").textContent = data.match;
           document.getElementById("team1-num").textContent = data.team1;
           document.getElementById("team2-num").textContent = data.team2;
+
+          const arrowsEl = document.getElementById("arrows");
+          if (data.arrows) {
+            arrowsEl.classList.add("visible");
+            document.getElementById("arrow1").innerHTML = data.arrows === "up-down" ? "&#9650;" : "&#9660;";
+            document.getElementById("arrow2").innerHTML = data.arrows === "up-down" ? "&#9660;" : "&#9650;";
+          } else {
+            arrowsEl.classList.remove("visible");
+          }
 
           if (data.timerEnd !== timerEnd) {
             timerEnd = data.timerEnd;

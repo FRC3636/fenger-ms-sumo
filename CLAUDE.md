@@ -1,3 +1,29 @@
+## Project
+
+OBS overlay + admin panel for a Sumo game. Run with `bun --hot index.ts`.
+
+- `index.ts` — Bun.serve() API server with in-memory state
+- `admin.html` — Control panel at `/` for setting match info and controlling the timer
+- `overlay.html` — Transparent OBS Browser Source at `/overlay`, polls `/api/state` every second
+
+### API routes
+
+- `GET /api/state` — current state (match, team1, team2, timerEnd, arrows)
+- `POST /api/state` — update match info (also randomizes arrow direction)
+- `POST /api/start` — start 2-minute match timer, clears arrows
+- `POST /api/end` — end match, increment match number, clear timer
+- `POST /api/reset` — reset timer only (repeat match, no match number increment)
+
+### Color mapping
+
+- team1 = Blue (left on overlay)
+- team2 = Red (right on overlay)
+
+### Routing caveat
+
+Bun.serve `routes` has issues with deeply nested paths like `/api/timer/start`. Use flat paths like `/api/start` instead.
+
+---
 
 Default to using Bun instead of Node.js.
 
