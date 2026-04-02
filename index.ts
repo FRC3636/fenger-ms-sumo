@@ -14,7 +14,7 @@ interface State {
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvcIBxLcJXsAwEm-yEW7m2VmCZAbJvKOuxyNtVq6iA2CdtUJ_txUodlzgYQD1-hTiPCMiClrX0A3Z/pub?gid=1317889012&single=true&output=csv";
 
-async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string } | null> {
+async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string; team1Members: string; team2Members: string } | null> {
   let text: string;
   try {
     const res = await fetch(SHEET_CSV_URL);
@@ -36,9 +36,11 @@ async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: n
   const team2 = parseInt(lastRow[10] ?? "");       // Red Team #1
   const team1Name = lastRow[5]?.trim() || "Blue";  // Robot Name (Blue)
   const team2Name = lastRow[12]?.trim() || "Red";  // Robot Name (Red)
+  const team1Members = lastRow[4]?.trim() || "";   // Team Members (Blue Team #1)
+  const team2Members = lastRow[11]?.trim() || "";  // Team Members (Red Team #1)
   console.log("[sheet] cols 3,5,10,12:", lastRow[3], "|", lastRow[5], "|", lastRow[10], "|", lastRow[12]);
   if (isNaN(match) || isNaN(team1) || isNaN(team2)) return null;
-  return { match, team1, team2, team1Name, team2Name };
+  return { match, team1, team2, team1Name, team2Name, team1Members, team2Members };
 }
 
 // Simple CSV row parser that handles quoted fields with commas/newlines

@@ -70,6 +70,14 @@
         transition: opacity 0.2s;
       }
       .team-name-input:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .team-members {
+        font-size: 0.75rem;
+        color: #888;
+        margin-top: 5px;
+        min-height: 1em;
+        text-align: center;
+      }
       .team-field.blue .team-name-input { border-color: rgba(52, 152, 219, 0.5); }
       .team-field.blue .team-name-input:focus { border-color: #5dade2; }
       .team-field.red .team-name-input { border-color: rgba(231, 76, 60, 0.5); }
@@ -220,11 +228,13 @@
           <label>Blue</label>
           <input type="number" id="team1" min="1" value="1" />
           <input type="text" class="team-name-input" id="team1Name" value="Blue" placeholder="Team name" />
+          <div class="team-members" id="team1Members"></div>
         </div>
         <div class="team-field red">
           <label>Red</label>
           <input type="number" id="team2" min="1" value="2" />
           <input type="text" class="team-name-input" id="team2Name" value="Red" placeholder="Team name" />
+          <div class="team-members" id="team2Members"></div>
         </div>
       </div>
 
@@ -398,6 +408,8 @@
           document.getElementById("team2").value = data.team2;
           document.getElementById("team1Name").value = data.team1Name ?? "Blue";
           document.getElementById("team2Name").value = data.team2Name ?? "Red";
+          document.getElementById("team1Members").textContent = data.team1Members || "";
+          document.getElementById("team2Members").textContent = data.team2Members || "";
           flash("Loaded from sheet!");
         } catch {
           flash("Sheet load error");
@@ -405,6 +417,7 @@
           btn.disabled = false;
           btn.textContent = "Load from Sheet";
         }
+        save()
       }
 
       function flash(msg) {

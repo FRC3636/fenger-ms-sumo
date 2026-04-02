@@ -12,16 +12,16 @@ OBS overlay + admin panel for a Sumo game. Run with `bun --hot index.ts`.
 
 ### API routes
 
-- `GET /api/state` — current state (match, team1, team2, timerEnd, arrows)
+- `GET /api/state` — current state (match, team1, team2, team1Name, team2Name, timerEnd, arrows)
 - `POST /api/state` — update match info (also randomizes arrow direction)
 - `POST /api/start` — start 2-minute match timer, clears arrows
 - `POST /api/end` — end match, increment match number, clear timer
 - `POST /api/reset` — reset timer only (repeat match, no match number increment)
-- `GET /api/sheet` — fetch last populated row from Google Sheet CSV and return `{ match, team1, team2 }`
+- `GET /api/sheet` — fetch last populated row from Google Sheet CSV and return `{ match, team1, team2, team1Name, team2Name }`
 
 ### Google Sheet integration
 
-`SHEET_CSV_URL` in `index.ts` points to a public CSV export. `fetchSheetRow()` parses the last non-blank row (non-empty `Match #` column). Column indices: 0 = Match #, 3 = Blue Team #1, 10 = Red Team #1. The "Load from Sheet" button in admin calls this endpoint and populates the fields — the user still presses "Set Match Info" to push values to the overlay.
+`SHEET_CSV_URL` in `index.ts` points to a public CSV export. `fetchSheetRow()` parses the last non-blank row (non-empty `Match #` column). Column indices: 0 = Match #, 3 = Blue Team #1, 5 = Robot Name (Blue), 10 = Red Team #1, 12 = Robot Name (Red). The "Load from Sheet" button in admin calls this endpoint and populates the fields — the user still presses "Set Match Info" to push values to the overlay.
 
 ### Color mapping
 
