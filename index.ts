@@ -1,5 +1,16 @@
 import adminHtml from "./admin.html";
 import overlayHtml from "./overlay.html";
+import {
+  type State,
+  type AppsScriptResponse,
+  MATCH_DURATION_MS as _MATCH_DURATION_MS,
+  mapSheetData,
+  applyStateUpdate,
+  applyStart,
+  applyEnd,
+  applyReset,
+  applyWinner,
+} from "./handlers";
 
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
@@ -17,33 +28,8 @@ function log(tag: string, color: string, ...args: unknown[]) {
   console.log(`${ts()} ${color}${BOLD}[${tag}]${RESET}`, ...args);
 }
 
-interface State {
-  match: number;
-  team1: number;
-  team2: number;
-  team1Name: string;
-  team2Name: string;
-  timerEnd: number | null;
-  arrows: "up-down" | "down-up" | null; // random arrow direction shown between teams
-  winner: "team1" | "team2" | null;
-  ondeck1: number | null; // blue on-deck team number
-  ondeck2: number | null; // red on-deck team number
-}
-
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec?token=fengermanagementsystem";
-
-interface AppsScriptResponse {
-  matchNumber: number;
-  blueTeamNumber: number;
-  redTeamNumber: number;
-  blueTeamName: string;
-  redTeamName: string;
-  blueTeamMembers: string;
-  redTeamMembers: string;
-  blueOnDeck: number;
-  redOnDeck: number;
-}
 
 async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
   log("sheet", CYAN, "fetching data from Apps Script...");
@@ -62,25 +48,12 @@ async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
   }
 }
 
-async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string; team1Members: string; team2Members: string; ondeck1: number | null; ondeck2: number | null } | null> {
+async function fetchSheetRow() {
   const data = await fetchAppsScript();
   if (!data) return null;
-  const { matchNumber: match, blueTeamNumber: team1, redTeamNumber: team2 } = data;
-  if (!match || !team1 || !team2) {
-    log("sheet", RED, "missing required fields in response");
-    return null;
-  }
-  return {
-    match,
-    team1,
-    team2,
-    team1Name: data.blueTeamName || "Blue",
-    team2Name: data.redTeamName || "Red",
-    team1Members: data.blueTeamMembers || "",
-    team2Members: data.redTeamMembers || "",
-    ondeck1: data.blueOnDeck || null,
-    ondeck2: data.redOnDeck || null,
-  };
+  const row = mapSheetData(data);
+  if (!row) log("sheet", RED, "missing required fields in response");
+  return row;
 }
 
 
@@ -96,8 +69,6 @@ const state: State = {
   ondeck1: null,
   ondeck2: null,
 };
-
-const MATCH_DURATION_MS = 2 * 60 * 1000;
 
 Bun.serve({
   routes: {
@@ -118,15 +89,8 @@ Bun.serve({
           return new Response("Invalid JSON", { status: 400 });
         }
         const prev = { match: state.match, team1: state.team1, team2: state.team2, team1Name: state.team1Name, team2Name: state.team2Name };
-        if (typeof body.match === "number") state.match = body.match;
-        if (typeof body.team1 === "number") state.team1 = body.team1;
-        if (typeof body.team2 === "number") state.team2 = body.team2;
-        if (typeof body.team1Name === "string") state.team1Name = body.team1Name;
-        if (typeof body.team2Name === "string") state.team2Name = body.team2Name;
-        if (typeof body.ondeck1 === "number") state.ondeck1 = body.ondeck1;
-        if (typeof body.ondeck2 === "number") state.ondeck2 = body.ondeck2;
-        state.arrows = Math.random() < 0.5 ? "up-down" : "down-up";
-        state.winner = null;
+        const arrows = Math.random() < 0.5 ? "up-down" : "down-up" as const;
+        Object.assign(state, applyStateUpdate(state, body, arrows));
         log("api", YELLOW, `POST /api/state  match=${prev.match}→${state.match}  blue=${prev.team1} "${prev.team1Name}"→${state.team1} "${state.team1Name}"  red=${prev.team2} "${prev.team2Name}"→${state.team2} "${state.team2Name}"  arrows=${state.arrows}`);
         return Response.json(state);
       },
@@ -134,10 +98,8 @@ Bun.serve({
 
     "/api/start": {
       POST: () => {
-        state.timerEnd = Date.now() + MATCH_DURATION_MS;
-        state.arrows = null;
-        state.winner = null;
-        const endsAt = new Date(state.timerEnd).toISOString();
+        Object.assign(state, applyStart(state, Date.now()));
+        const endsAt = new Date(state.timerEnd!).toISOString();
         log("api", GREEN, `POST /api/start  match=${state.match}  blue=${state.team1} "${state.team1Name}" vs red=${state.team2} "${state.team2Name}"  timer ends at ${endsAt}`);
         return Response.json(state);
       },
@@ -146,8 +108,7 @@ Bun.serve({
     "/api/end": {
       POST: () => {
         log("api", YELLOW, `POST /api/end  match=${state.match}  clearing timer and winner`);
-        state.timerEnd = null;
-        state.winner = null;
+        Object.assign(state, applyEnd(state));
         return Response.json(state);
       },
     },
@@ -155,27 +116,26 @@ Bun.serve({
     "/api/reset": {
       POST: () => {
         log("api", YELLOW, `POST /api/reset  match=${state.match}  resetting timer`);
-        state.timerEnd = null;
-        state.winner = null;
+        Object.assign(state, applyReset(state));
         return Response.json(state);
       },
     },
 
     "/api/winner": {
       POST: async (req) => {
-        let body: { winner: "team1" | "team2" };
+        let body: { winner: string };
         try {
-          body = await req.json() as { winner: "team1" | "team2" };
+          body = await req.json() as { winner: string };
         } catch {
           log("api", RED, "POST /api/winner — invalid JSON");
           return new Response("Invalid JSON", { status: 400 });
         }
-        if (body.winner !== "team1" && body.winner !== "team2") {
+        const result = applyWinner(state, body.winner);
+        if (!result.ok) {
           log("api", RED, `POST /api/winner — bad value: ${body.winner}`);
-          return new Response("winner must be team1 or team2", { status: 400 });
+          return new Response(result.error, { status: 400 });
         }
-        state.winner = body.winner;
-        state.timerEnd = null;
+        Object.assign(state, result.state);
         const winnerTeam = body.winner === "team1" ? state.team1 : state.team2;
         const winnerName = body.winner === "team1" ? state.team1Name : state.team2Name;
         const side = body.winner === "team1" ? "BLUE" : "RED";
