@@ -390,22 +390,11 @@
       async function loadFromSheet() {
         const btn = document.getElementById("btn-sheet");
         btn.disabled = true;
-        const currentMatch = parseInt(document.getElementById("match").value) || 0;
-        const MAX_ATTEMPTS = 8;
-        const RETRY_DELAY_MS = 2000;
-
         try {
-          let data = null;
-          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            btn.textContent = attempt === 1 ? "Loading..." : `Retrying (${attempt}/${MAX_ATTEMPTS})…`;
-            const res = await fetch("/api/sheet");
-            if (!res.ok) { flash("Sheet load failed"); return; }
-            const fetched = await res.json();
-            if (fetched.match > currentMatch) { data = fetched; break; }
-            if (attempt < MAX_ATTEMPTS) await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
-          }
-
-          if (!data) { flash("Sheet not updated yet — try again later"); return; }
+          btn.textContent = "Loading...";
+          const res = await fetch("/api/sheet");
+          if (!res.ok) { flash("Sheet load failed"); return; }
+          const data = await res.json();
 
           document.getElementById("match").value = data.match;
           document.getElementById("team1").value = data.team1;
@@ -419,8 +408,8 @@
             const deckRes = await fetch("/api/ondeck", { method: "POST" });
             if (deckRes.ok) {
               const deck = await deckRes.json();
-              document.getElementById("ondeck1-disp").textContent = "#" + deck.ondeck1 + " – " + deck.ondeck1Name;
-              document.getElementById("ondeck2-disp").textContent = "#" + deck.ondeck2 + " – " + deck.ondeck2Name;
+              document.getElementById("ondeck1-disp").textContent = "#" + deck.ondeck1;
+              document.getElementById("ondeck2-disp").textContent = "#" + deck.ondeck2;
               document.getElementById("ondeck-display").style.display = "block";
             }
           } catch { /* ondeck fetch failure is non-fatal */ }

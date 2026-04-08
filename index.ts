@@ -32,112 +32,68 @@ interface State {
   ondeck2: number | null; // red on-deck team number
 }
 
-const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvcIBxLcJXsAwEm-yEW7m2VmCZAbJvKOuxyNtVq6iA2CdtUJ_txUodlzgYQD1-hTiPCMiClrX0A3Z/pub?gid=1317889012&single=true&output=csv";
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec?token=fengermanagementsystem";
 
-const ONDECK_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHvcIBxLcJXsAwEm-yEW7m2VmCZAbJvKOuxyNtVq6iA2CdtUJ_txUodlzgYQD1-hTiPCMiClrX0A3Z/pub?gid=1738939427&single=true&output=csv";
+interface AppsScriptResponse {
+  matchNumber: number;
+  blueTeamNumber: number;
+  redTeamNumber: number;
+  blueTeamName: string;
+  redTeamName: string;
+  blueTeamMembers: string;
+  redTeamMembers: string;
+  blueOnDeck: number;
+  redOnDeck: number;
+}
 
-async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string; team1Members: string; team2Members: string } | null> {
-  let text: string;
-  log("sheet", CYAN, "fetching match sheet CSV...");
+async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
+  log("sheet", CYAN, "fetching data from Apps Script...");
   try {
-    const url = `${SHEET_CSV_URL}&t=${Date.now()}-${Math.random()}`;
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(APPS_SCRIPT_URL, { redirect: "follow" });
     if (!res.ok) {
       log("sheet", RED, `HTTP ${res.status} ${res.statusText}`);
       return null;
     }
-    text = await res.text();
-    log("sheet", CYAN, `got ${text.length} bytes, ${text.split("\n").length} lines`);
+    const data = await res.json() as AppsScriptResponse;
+    log("sheet", CYAN, `match=${data.matchNumber}  blue=${data.blueTeamNumber} "${data.blueTeamName}"  red=${data.redTeamNumber} "${data.redTeamName}"  ondeck blue=${data.blueOnDeck} red=${data.redOnDeck}`);
+    return data;
   } catch (err) {
     log("sheet", RED, "fetch error:", err);
     return null;
   }
-  const lines = text.split("\n");
-  // Skip header (index 0), find row with the highest Match # value
-  let lastRow: string[] | null = null;
-  let highestMatch = -Infinity;
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseCSVRow(lines[i] ?? "");
-    const matchNum = parseInt(cols[0] ?? "");
-    if (!isNaN(matchNum) && matchNum > highestMatch) {
-      highestMatch = matchNum;
-      lastRow = cols;
-    }
-  }
-  if (!lastRow) {
-    log("sheet", RED, "no valid match rows found");
+}
+
+async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string; team1Members: string; team2Members: string } | null> {
+  const data = await fetchAppsScript();
+  if (!data) return null;
+  const { matchNumber: match, blueTeamNumber: team1, redTeamNumber: team2 } = data;
+  if (!match || !team1 || !team2) {
+    log("sheet", RED, "missing required fields in response");
     return null;
   }
-  const match = parseInt(lastRow[0] ?? "");
-  const team1 = parseInt(lastRow[3] ?? "");        // Blue Team #1
-  const team2 = parseInt(lastRow[10] ?? "");       // Red Team #1
-  const team1Name = lastRow[5]?.trim() || "Blue";  // Robot Name (Blue)
-  const team2Name = lastRow[12]?.trim() || "Red";  // Robot Name (Red)
-  const team1Members = lastRow[4]?.trim() || "";   // Team Members (Blue Team #1)
-  const team2Members = lastRow[11]?.trim() || "";  // Team Members (Red Team #1)
-  log("sheet", CYAN, `match=${match}  blue=${team1} "${team1Name}" [${team1Members}]  red=${team2} "${team2Name}" [${team2Members}]`);
-  if (isNaN(match) || isNaN(team1) || isNaN(team2)) {
-    log("sheet", RED, "parsed NaN values — discarding row");
-    return null;
-  }
-  return { match, team1, team2, team1Name, team2Name, team1Members, team2Members };
+  return {
+    match,
+    team1,
+    team2,
+    team1Name: data.blueTeamName || "Blue",
+    team2Name: data.redTeamName || "Red",
+    team1Members: data.blueTeamMembers || "",
+    team2Members: data.redTeamMembers || "",
+  };
 }
 
 async function fetchOnDeckRows(): Promise<{ ondeck1: number; ondeck1Name: string; ondeck2: number; ondeck2Name: string } | null> {
-  let text: string;
-  log("ondeck", MAGENTA, "fetching on-deck sheet CSV...");
-  try {
-    const res = await fetch(`${ONDECK_CSV_URL}&t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) {
-      log("ondeck", RED, `HTTP ${res.status} ${res.statusText}`);
-      return null;
-    }
-    text = await res.text();
-    log("ondeck", MAGENTA, `got ${text.length} bytes`);
-  } catch (err) {
-    log("ondeck", RED, "fetch error:", err);
+  const data = await fetchAppsScript();
+  if (!data) return null;
+  const ondeck1 = data.blueOnDeck;
+  const ondeck2 = data.redOnDeck;
+  if (!ondeck1 || !ondeck2) {
+    log("ondeck", RED, `missing on-deck fields — blue=${ondeck1} red=${ondeck2}`);
     return null;
   }
-  const lines = text.split("\n").filter(l => l.trim());
-  // lines[0] = header, lines[1] = red (ondeck2), lines[2] = blue (ondeck1)
-  if (lines.length < 3) {
-    log("ondeck", RED, `not enough rows (got ${lines.length}, need 3)`);
-    return null;
-  }
-  const redRow = parseCSVRow(lines[1] ?? "");
-  const blueRow = parseCSVRow(lines[2] ?? "");
-  const ondeck2 = parseInt(redRow[4] ?? "");
-  const ondeck2Name = redRow[5]?.trim() || "Red";
-  const ondeck1 = parseInt(blueRow[4] ?? "");
-  const ondeck1Name = blueRow[5]?.trim() || "Blue";
-  if (isNaN(ondeck1) || isNaN(ondeck2)) {
-    log("ondeck", RED, `parsed NaN — ondeck1=${ondeck1} ondeck2=${ondeck2}`);
-    return null;
-  }
-  log("ondeck", MAGENTA, `blue on-deck=${ondeck1} "${ondeck1Name}"  red on-deck=${ondeck2} "${ondeck2Name}"`);
-  return { ondeck1, ondeck1Name, ondeck2, ondeck2Name };
-}
-
-// Simple CSV row parser that handles quoted fields with commas/newlines
-function parseCSVRow(line: string): string[] {
-  const cols: string[] = [];
-  let cur = "";
-  let inQuote = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuote = !inQuote;
-    } else if (ch === "," && !inQuote) {
-      cols.push(cur);
-      cur = "";
-    } else {
-      cur += ch;
-    }
-  }
-  cols.push(cur);
-  return cols;
+  log("ondeck", MAGENTA, `blue on-deck=${ondeck1}  red on-deck=${ondeck2}`);
+  return { ondeck1, ondeck1Name: "", ondeck2, ondeck2Name: "" };
 }
 
 const state: State = {
@@ -240,19 +196,15 @@ Bun.serve({
 
     "/api/sheet": {
       GET: async () => {
-        log("api", CYAN, "GET /api/sheet — fetching twice in parallel...");
+        log("api", CYAN, "GET /api/sheet");
         try {
-          const [row1, row2] = await Promise.all([fetchSheetRow(), fetchSheetRow()]);
-          log("api", CYAN, `sheet parallel results: row1.match=${row1?.match ?? "null"}  row2.match=${row2?.match ?? "null"}`);
-          const best = [row1, row2]
-            .filter(r => r !== null)
-            .reduce<typeof row1>((a, b) => (b!.match > a!.match ? b : a), row1);
-          if (!best) {
+          const row = await fetchSheetRow();
+          if (!row) {
             log("api", RED, "GET /api/sheet — no data found");
             return new Response("No data found in sheet", { status: 404 });
           }
-          log("api", GREEN, `GET /api/sheet — returning match=${best.match}  blue=${best.team1} "${best.team1Name}"  red=${best.team2} "${best.team2Name}"`);
-          return Response.json(best);
+          log("api", GREEN, `GET /api/sheet — returning match=${row.match}  blue=${row.team1} "${row.team1Name}"  red=${row.team2} "${row.team2Name}"`);
+          return Response.json(row);
         } catch (err) {
           log("api", RED, "GET /api/sheet — exception:", err);
           return new Response("Sheet fetch failed", { status: 502 });

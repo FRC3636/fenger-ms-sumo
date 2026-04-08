@@ -46,15 +46,16 @@ No build step. Bun bundles HTML files (including any `.tsx`/`.css` imports) auto
 }
 ```
 
-## Google Sheet integration
+## Google Apps Script integration
 
-Two sheets, both fetched with `cache: "no-store"` and a `&t=Date.now()-${Math.random()}` cache-buster to avoid Google's CDN caching across edge nodes.
+All sheet data is fetched from a single Google Apps Script endpoint (`APPS_SCRIPT_URL`) with a `token=fengermanagementsystem` query param. The script returns JSON with both match and on-deck data.
 
-**Match sheet** (`SHEET_CSV_URL`, gid=1317889012): `GET /api/sheet` fetches **twice in parallel** and returns whichever result has the higher match number — this defends against stale responses from different Google edge servers. `fetchSheetRow()` picks the row with the highest Match # value (not last-by-position). Column indices: 0 = Match #, 3 = Blue Team #1, 4 = Blue Members, 5 = Robot Name (Blue), 10 = Red Team #1, 11 = Red Members, 12 = Robot Name (Red).
+Response shape:
+```json
+{ "matchNumber", "blueTeamNumber", "redTeamNumber", "blueTeamName", "redTeamName", "blueTeamMembers", "redTeamMembers", "blueOnDeck", "redOnDeck" }
+```
 
-**On-deck sheet** (`ONDECK_CSV_URL`, gid=1738939427): sorted list of teams waiting to play. `fetchOnDeckRows()` reads the first two data rows — row 1 = Red on-deck (`ondeck2`), row 2 = Blue on-deck (`ondeck1`). Column indices: 4 = Team #, 5 = Robot Name.
-
-The "Load from Sheet" button retries up to 8 times (2 s apart) until the sheet returns a match number higher than the current one, then auto-saves to the overlay. If all retries fail it shows an error. No separate "Set Match Info" press is needed after a successful load.
+`fetchAppsScript()` fetches once and returns the parsed response. `fetchSheetRow()` and `fetchOnDeckRows()` both delegate to it. The "Load from Sheet" button does a single fetch, auto-saves to the overlay, and also fetches on-deck. No retry logic — the Apps Script serves fresh data directly.
 
 ## Color mapping
 
