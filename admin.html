@@ -329,13 +329,14 @@
         el.className = "timer-display" + (timerEnd === null ? " idle" : urgent ? " urgent" : "");
       }
 
-      async function save() {
+      async function save(extra = {}) {
         const body = {
           match: parseInt(document.getElementById("match").value),
           team1: parseInt(document.getElementById("team1").value),
           team2: parseInt(document.getElementById("team2").value),
           team1Name: document.getElementById("team1Name").value.trim() || "Blue",
           team2Name: document.getElementById("team2Name").value.trim() || "Red",
+          ...extra,
         };
         try {
           const res = await fetch("/api/state", {
@@ -404,17 +405,13 @@
           document.getElementById("team1Members").textContent = data.team1Members || "";
           document.getElementById("team2Members").textContent = data.team2Members || "";
 
-          try {
-            const deckRes = await fetch("/api/ondeck", { method: "POST" });
-            if (deckRes.ok) {
-              const deck = await deckRes.json();
-              document.getElementById("ondeck1-disp").textContent = "#" + deck.ondeck1;
-              document.getElementById("ondeck2-disp").textContent = "#" + deck.ondeck2;
-              document.getElementById("ondeck-display").style.display = "block";
-            }
-          } catch { /* ondeck fetch failure is non-fatal */ }
+          if (data.ondeck1 && data.ondeck2) {
+            document.getElementById("ondeck1-disp").textContent = "#" + data.ondeck1;
+            document.getElementById("ondeck2-disp").textContent = "#" + data.ondeck2;
+            document.getElementById("ondeck-display").style.display = "block";
+          }
 
-          await save();
+          await save({ ondeck1: data.ondeck1 ?? null, ondeck2: data.ondeck2 ?? null });
           flash("Loaded from sheet!");
         } catch {
           flash("Sheet load error");

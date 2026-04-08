@@ -26,8 +26,7 @@ No build step. Bun bundles HTML files (including any `.tsx`/`.css` imports) auto
 - `POST /api/end` — end match, clear timer and winner
 - `POST /api/reset` — reset timer only (repeat match, no state changes)
 - `POST /api/winner` — set `{ winner: "team1" | "team2" }`, stops timer
-- `GET /api/sheet` — fetch current match row from Google Sheet CSV, returns `{ match, team1, team2, team1Name, team2Name, team1Members, team2Members }`
-- `POST /api/ondeck` — fetch on-deck teams from the on-deck sheet, updates `state.ondeck1`/`ondeck2`, returns `{ ondeck1, ondeck1Name, ondeck2, ondeck2Name }`
+- `GET /api/sheet` — fetch from Apps Script, returns `{ match, team1, team2, team1Name, team2Name, team1Members, team2Members, ondeck1, ondeck2 }`
 
 ## State shape
 

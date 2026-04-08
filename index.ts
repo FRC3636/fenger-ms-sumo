@@ -8,8 +8,6 @@ const CYAN = "\x1b[36m";
 const YELLOW = "\x1b[33m";
 const GREEN = "\x1b[32m";
 const RED = "\x1b[31m";
-const MAGENTA = "\x1b[35m";
-const BLUE = "\x1b[34m";
 
 function ts() {
   return `${DIM}${new Date().toISOString()}${RESET}`;
@@ -64,7 +62,7 @@ async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
   }
 }
 
-async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string; team1Members: string; team2Members: string } | null> {
+async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: number; team1Name: string; team2Name: string; team1Members: string; team2Members: string; ondeck1: number | null; ondeck2: number | null } | null> {
   const data = await fetchAppsScript();
   if (!data) return null;
   const { matchNumber: match, blueTeamNumber: team1, redTeamNumber: team2 } = data;
@@ -80,21 +78,11 @@ async function fetchSheetRow(): Promise<{ match: number; team1: number; team2: n
     team2Name: data.redTeamName || "Red",
     team1Members: data.blueTeamMembers || "",
     team2Members: data.redTeamMembers || "",
+    ondeck1: data.blueOnDeck || null,
+    ondeck2: data.redOnDeck || null,
   };
 }
 
-async function fetchOnDeckRows(): Promise<{ ondeck1: number; ondeck1Name: string; ondeck2: number; ondeck2Name: string } | null> {
-  const data = await fetchAppsScript();
-  if (!data) return null;
-  const ondeck1 = data.blueOnDeck;
-  const ondeck2 = data.redOnDeck;
-  if (!ondeck1 || !ondeck2) {
-    log("ondeck", RED, `missing on-deck fields — blue=${ondeck1} red=${ondeck2}`);
-    return null;
-  }
-  log("ondeck", MAGENTA, `blue on-deck=${ondeck1}  red on-deck=${ondeck2}`);
-  return { ondeck1, ondeck1Name: "", ondeck2, ondeck2Name: "" };
-}
 
 const state: State = {
   match: 1,
@@ -135,6 +123,8 @@ Bun.serve({
         if (typeof body.team2 === "number") state.team2 = body.team2;
         if (typeof body.team1Name === "string") state.team1Name = body.team1Name;
         if (typeof body.team2Name === "string") state.team2Name = body.team2Name;
+        if (typeof body.ondeck1 === "number") state.ondeck1 = body.ondeck1;
+        if (typeof body.ondeck2 === "number") state.ondeck2 = body.ondeck2;
         state.arrows = Math.random() < 0.5 ? "up-down" : "down-up";
         state.winner = null;
         log("api", YELLOW, `POST /api/state  match=${prev.match}→${state.match}  blue=${prev.team1} "${prev.team1Name}"→${state.team1} "${state.team1Name}"  red=${prev.team2} "${prev.team2Name}"→${state.team2} "${state.team2Name}"  arrows=${state.arrows}`);
@@ -203,31 +193,11 @@ Bun.serve({
             log("api", RED, "GET /api/sheet — no data found");
             return new Response("No data found in sheet", { status: 404 });
           }
-          log("api", GREEN, `GET /api/sheet — returning match=${row.match}  blue=${row.team1} "${row.team1Name}"  red=${row.team2} "${row.team2Name}"`);
+          log("api", GREEN, `GET /api/sheet — match=${row.match}  blue=${row.team1} "${row.team1Name}"  red=${row.team2} "${row.team2Name}"  ondeck blue=${row.ondeck1} red=${row.ondeck2}`);
           return Response.json(row);
         } catch (err) {
           log("api", RED, "GET /api/sheet — exception:", err);
           return new Response("Sheet fetch failed", { status: 502 });
-        }
-      },
-    },
-
-    "/api/ondeck": {
-      POST: async () => {
-        log("api", MAGENTA, "POST /api/ondeck");
-        try {
-          const data = await fetchOnDeckRows();
-          if (!data) {
-            log("api", RED, "POST /api/ondeck — no data found");
-            return new Response("No on-deck data found", { status: 404 });
-          }
-          state.ondeck1 = data.ondeck1;
-          state.ondeck2 = data.ondeck2;
-          log("api", GREEN, `POST /api/ondeck — blue=${data.ondeck1} "${data.ondeck1Name}"  red=${data.ondeck2} "${data.ondeck2Name}"`);
-          return Response.json(data);
-        } catch (err) {
-          log("api", RED, "POST /api/ondeck — exception:", err);
-          return new Response("On-deck fetch failed", { status: 502 });
         }
       },
     },
