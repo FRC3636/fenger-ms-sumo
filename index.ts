@@ -3,7 +3,6 @@ import overlayHtml from "./overlay.html";
 import {
   type State,
   type AppsScriptResponse,
-  MATCH_DURATION_MS as _MATCH_DURATION_MS,
   mapSheetData,
   applyStateUpdate,
   applyStart,
@@ -28,8 +27,10 @@ function log(tag: string, color: string, ...args: unknown[]) {
   console.log(`${ts()} ${color}${BOLD}[${tag}]${RESET}`, ...args);
 }
 
+const TOKEN = "fengermanagementsystem";
+
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec?token=fengermanagementsystem";
+  `https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec?token=${TOKEN}`;
 
 async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
   log("sheet", CYAN, "fetching data from Apps Script...");
