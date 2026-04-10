@@ -29,8 +29,10 @@ function log(tag: string, color: string, ...args: unknown[]) {
 
 const TOKEN = "fengermanagementsystem";
 
-const APPS_SCRIPT_URL =
-  `https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec?token=${TOKEN}`;
+const APPS_SCRIPT_BASE =
+  "https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec";
+
+const APPS_SCRIPT_URL = `${APPS_SCRIPT_BASE}?token=${TOKEN}`;
 
 async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
   log("sheet", CYAN, "fetching data from Apps Script...");
@@ -142,6 +144,31 @@ Bun.serve({
         const side = body.winner === "team1" ? "BLUE" : "RED";
         log("api", GREEN, `POST /api/winner  match=${state.match}  ${BOLD}${side} WINS — team ${winnerTeam} "${winnerName}"${RESET}`);
         return Response.json(state);
+      },
+    },
+
+    "/api/export": {
+      POST: async (req) => {
+        let body: { winner?: string } = {};
+        try { body = await req.json() as { winner?: string }; } catch { /* optional body */ }
+        const winner = body.winner ?? state.winner;
+        const redWin = winner === "team2";
+        log("api", CYAN, `POST /api/export  match=${state.match}  winner=${winner}  redWin=${redWin}`);
+        try {
+          const res = await fetch(APPS_SCRIPT_BASE, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: TOKEN, matchNumber: state.match, redWin }),
+            redirect: "follow",
+          });
+          const text = await res.text();
+          log("api", res.ok ? GREEN : RED, `POST /api/export — Apps Script responded: ${text}`);
+          if (!res.ok) return new Response(text, { status: 502 });
+          return new Response(`${text} [winner=${winner} redWin=${redWin}]`);
+        } catch (err) {
+          log("api", RED, "POST /api/export — fetch error:", err);
+          return new Response("Export failed", { status: 502 });
+        }
       },
     },
 

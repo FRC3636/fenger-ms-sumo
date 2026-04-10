@@ -69,7 +69,7 @@ export function applyStart(state: State, now: number): State {
 }
 
 export function applyEnd(state: State): State {
-  return { ...state, timerEnd: null, winner: null };
+  return { ...state, timerEnd: null };
 }
 
 export function applyReset(state: State): State {

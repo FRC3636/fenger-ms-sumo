@@ -187,6 +187,12 @@
       }
       .btn-end:not(:disabled):hover { background: #d35400; }
 
+      .btn-export {
+        background: #8e44ad;
+        color: #fff;
+      }
+      .btn-export:not(:disabled):hover { background: #7d3c98; }
+
       #status {
         min-height: 1.5rem;
         text-align: center;
@@ -266,6 +272,9 @@
       <div class="btn-row" id="btn-end-row" style="display:none">
         <button class="btn-end" id="btn-end" onclick="endMatch()">End Match</button>
       </div>
+      <div class="btn-row">
+        <button class="btn-export" id="btn-export" onclick="exportScores()">Export to Sheet</button>
+      </div>
 
       <p id="status"></p>
     </div>
@@ -275,6 +284,7 @@
     <script>
       let timerEnd = null;
       let tickInterval = null;
+      let currentWinner = null;
 
       async function load() {
         try {
@@ -286,6 +296,7 @@
           document.getElementById("team2").value = data.team2;
           document.getElementById("team1Name").value = data.team1Name ?? "Blue";
           document.getElementById("team2Name").value = data.team2Name ?? "Red";
+          currentWinner = data.winner ?? null;
           applyState(data.timerEnd);
         } catch {
           flash("Connection error");
@@ -304,6 +315,7 @@
 
         document.getElementById("btn-sheet").disabled = matchActive;
         document.getElementById("btn-save").disabled = matchActive;
+        updateExportButton(matchActive);
 
         if (timerEnd !== null) {
           if (!tickInterval) tickInterval = setInterval(tick, 250);
@@ -313,6 +325,10 @@
           tickInterval = null;
           setTimerDisplay(120, false);
         }
+      }
+
+      function updateExportButton(matchActive) {
+        document.getElementById("btn-export").disabled = matchActive || !currentWinner;
       }
 
       function tick() {
@@ -367,7 +383,9 @@
           const res = await fetch("/api/start", { method: "POST" });
           if (!res.ok) { flash("Start failed"); return; }
           const data = await res.json();
+          currentWinner = null;
           applyState(data.timerEnd);
+          updateExportButton(true);
         } catch {
           flash("Connection error");
         }
@@ -381,7 +399,9 @@
             body: JSON.stringify({ winner: team }),
           });
           if (!res.ok) { flash("Failed to set winner"); return; }
+          currentWinner = team;
           applyState(null);
+          updateExportButton(false);
           flash(team === "team1" ? "Blue wins!" : "Red wins!");
         } catch {
           flash("Connection error");
@@ -418,6 +438,26 @@
         } finally {
           btn.disabled = false;
           btn.textContent = "Load from Sheet";
+        }
+      }
+
+      async function exportScores() {
+        const btn = document.getElementById("btn-export");
+        btn.disabled = true;
+        btn.textContent = "Exporting...";
+        try {
+          const res = await fetch("/api/export", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ winner: currentWinner }),
+          });
+          const text = await res.text();
+          flash(res.ok ? `Exported: ${text}` : `Export failed: ${text}`);
+        } catch {
+          flash("Export error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Export to Sheet";
         }
       }
 
