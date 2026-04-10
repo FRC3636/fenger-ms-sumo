@@ -164,7 +164,7 @@ Bun.serve({
           const text = await res.text();
           log("api", res.ok ? GREEN : RED, `POST /api/export — Apps Script responded: ${text}`);
           if (!res.ok) return new Response(text, { status: 502 });
-          return new Response(`${text} [winner=${winner} redWin=${redWin}]`);
+          return new Response(text);
         } catch (err) {
           log("api", RED, "POST /api/export — fetch error:", err);
           return new Response("Export failed", { status: 502 });
