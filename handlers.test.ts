@@ -142,11 +142,11 @@ describe("applyStart", () => {
 // --- applyEnd ---
 
 describe("applyEnd", () => {
-  test("clears timerEnd and winner", () => {
+  test("clears timerEnd but preserves winner", () => {
     const active = { ...baseState, timerEnd: Date.now() + 10000, winner: "team1" as const };
     const next = applyEnd(active);
     expect(next.timerEnd).toBeNull();
-    expect(next.winner).toBeNull();
+    expect(next.winner).toBe("team1");
   });
 
   test("preserves other fields", () => {
