@@ -9,6 +9,7 @@ export interface State {
   winner: "team1" | "team2" | null;
   ondeck1: number | null;
   ondeck2: number | null;
+  autoAddTeams: boolean;
 }
 
 export interface AppsScriptResponse {
@@ -59,6 +60,7 @@ export function applyStateUpdate(
   if (typeof body.team2Name === "string") next.team2Name = body.team2Name;
   if (typeof body.ondeck1 === "number") next.ondeck1 = body.ondeck1;
   if (typeof body.ondeck2 === "number") next.ondeck2 = body.ondeck2;
+  if (typeof body.autoAddTeams === "boolean") next.autoAddTeams = body.autoAddTeams;
   next.arrows = arrows;
   next.winner = null;
   return next;

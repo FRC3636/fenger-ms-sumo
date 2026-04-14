@@ -34,10 +34,11 @@ const APPS_SCRIPT_BASE =
 
 const APPS_SCRIPT_URL = `${APPS_SCRIPT_BASE}?token=${TOKEN}`;
 
-async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
-  log("sheet", CYAN, "fetching data from Apps Script...");
+async function fetchAppsScript(autoAddTeams = false): Promise<AppsScriptResponse | null> {
+  const url = autoAddTeams ? `${APPS_SCRIPT_URL}&autoAddTeams=true` : APPS_SCRIPT_URL;
+  log("sheet", CYAN, `fetching data from Apps Script...${autoAddTeams ? " (tournament mode)" : ""}`);
   try {
-    const res = await fetch(APPS_SCRIPT_URL, { redirect: "follow" });
+    const res = await fetch(url, { redirect: "follow" });
     if (!res.ok) {
       log("sheet", RED, `HTTP ${res.status} ${res.statusText}`);
       return null;
@@ -51,8 +52,8 @@ async function fetchAppsScript(): Promise<AppsScriptResponse | null> {
   }
 }
 
-async function fetchSheetRow() {
-  const data = await fetchAppsScript();
+async function fetchSheetRow(autoAddTeams = false) {
+  const data = await fetchAppsScript(autoAddTeams);
   if (!data) return null;
   const row = mapSheetData(data);
   if (!row) log("sheet", RED, "missing required fields in response");
@@ -71,6 +72,7 @@ const state: State = {
   winner: null,
   ondeck1: null,
   ondeck2: null,
+  autoAddTeams: true,
 };
 
 Bun.serve({
@@ -176,7 +178,7 @@ Bun.serve({
       GET: async () => {
         log("api", CYAN, "GET /api/sheet");
         try {
-          const row = await fetchSheetRow();
+          const row = await fetchSheetRow(state.autoAddTeams);
           if (!row) {
             log("api", RED, "GET /api/sheet — no data found");
             return new Response("No data found in sheet", { status: 404 });

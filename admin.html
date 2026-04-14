@@ -216,6 +216,58 @@
       }
 
       .overlay-link a { color: #3498db; }
+
+      .tournament-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 16px;
+        padding: 10px 14px;
+        background: rgba(243, 156, 18, 0.06);
+        border: 1px solid rgba(243, 156, 18, 0.2);
+        border-radius: 8px;
+      }
+
+      .tournament-row label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #f39c12;
+        margin: 0;
+        cursor: pointer;
+      }
+
+      .toggle-switch {
+        position: relative;
+        width: 40px;
+        height: 22px;
+      }
+
+      .toggle-switch input { display: none; }
+
+      .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: #333;
+        border-radius: 22px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .toggle-slider::before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 3px;
+        top: 3px;
+        background: #aaa;
+        border-radius: 50%;
+        transition: transform 0.2s, background 0.2s;
+      }
+
+      .toggle-switch input:checked + .toggle-slider { background: rgba(243, 156, 18, 0.3); }
+      .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: #f39c12; }
     </style>
   </head>
   <body>
@@ -257,6 +309,14 @@
         </div>
       </div>
 
+      <div class="tournament-row">
+        <label for="tournament-toggle">Auto Add Teams</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="tournament-toggle" onchange="setTournamentMode(this.checked)" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
       <div class="timer-display idle" id="timer">2:00</div>
 
       <div class="btn-row">
@@ -290,6 +350,7 @@
           document.getElementById("team1Name").value = data.team1Name ?? "Blue";
           document.getElementById("team2Name").value = data.team2Name ?? "Red";
           currentWinner = data.winner ?? null;
+          document.getElementById("tournament-toggle").checked = data.autoAddTeams ?? false;
           applyState(data.timerEnd);
         } catch {
           flash("Connection error");
@@ -333,6 +394,27 @@
         el.className = "timer-display" + (timerEnd === null ? " idle" : urgent ? " urgent" : "");
       }
 
+      async function setTournamentMode(enabled) {
+        try {
+          const res = await fetch("/api/state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              match: parseInt(document.getElementById("match").value),
+              team1: parseInt(document.getElementById("team1").value),
+              team2: parseInt(document.getElementById("team2").value),
+              team1Name: document.getElementById("team1Name").value.trim() || "Blue",
+              team2Name: document.getElementById("team2Name").value.trim() || "Red",
+              autoAddTeams: enabled,
+            }),
+          });
+          if (!res.ok) { flash("Failed to update tournament mode"); return; }
+          flash(enabled ? "Auto Add Teams ON" : "Auto Add Teams OFF");
+        } catch {
+          flash("Connection error");
+        }
+      }
+
       async function save(extra = {}) {
         const body = {
           match: parseInt(document.getElementById("match").value),
@@ -340,6 +422,7 @@
           team2: parseInt(document.getElementById("team2").value),
           team1Name: document.getElementById("team1Name").value.trim() || "Blue",
           team2Name: document.getElementById("team2Name").value.trim() || "Red",
+          autoAddTeams: document.getElementById("tournament-toggle").checked,
           ...extra,
         };
         try {

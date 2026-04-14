@@ -25,7 +25,8 @@ No build step. Bun bundles HTML files (including any `.tsx`/`.css` imports) auto
 - `POST /api/start` — start 2-minute match timer, clears arrows and winner
 - `POST /api/end` — end match, clear timer and winner
 - `POST /api/reset` — reset timer only (repeat match, no state changes)
-- `POST /api/winner` — set `{ winner: "team1" | "team2" }`, stops timer
+- `POST /api/winner` — set `{ winner: "team1" | "team2" }`, stops timer; auto-triggers export
+- `POST /api/export` — POST `{ token, matchNumber, redWin }` to Apps Script to record the result
 - `GET /api/sheet` — fetch from Apps Script, returns `{ match, team1, team2, team1Name, team2Name, team1Members, team2Members, ondeck1, ondeck2 }`
 
 ## State shape
@@ -42,6 +43,7 @@ No build step. Bun bundles HTML files (including any `.tsx`/`.css` imports) auto
   winner: "team1" | "team2" | null;
   ondeck1: number | null;    // Blue on-deck team number
   ondeck2: number | null;    // Red on-deck team number
+  autoAddTeams: boolean;     // when true, sends &autoAddTeams=true to Apps Script on sheet load
 }
 ```
 
@@ -54,7 +56,7 @@ Response shape:
 { "matchNumber", "blueTeamNumber", "redTeamNumber", "blueTeamName", "redTeamName", "blueTeamMembers", "redTeamMembers", "blueOnDeck", "redOnDeck" }
 ```
 
-`fetchAppsScript()` fetches once and returns the parsed response. `fetchSheetRow()` and `fetchOnDeckRows()` both delegate to it. The "Load from Sheet" button does a single fetch, auto-saves to the overlay, and also fetches on-deck. No retry logic — the Apps Script serves fresh data directly.
+`fetchAppsScript(autoAddTeams?)` fetches once and returns the parsed response. `fetchSheetRow(autoAddTeams?)` delegates to it and passes the flag as `&autoAddTeams=true` on the GET URL when enabled. The "Load from Sheet" button does a single fetch, auto-saves to the overlay, and also fetches on-deck. No retry logic — the Apps Script serves fresh data directly.
 
 ## Color mapping
 
