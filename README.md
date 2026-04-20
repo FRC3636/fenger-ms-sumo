@@ -1,5 +1,9 @@
 # fenger-ms-sumo
 
+Supports two game modes in one admin/overlay app:
+- **Sumo** (match timer + winner + Apps Script sheet integration)
+- **Red vs Blue (RvB)** (2 blue teams vs 2 red teams with live scoring via external server on port `8080`)
+
 To install dependencies:
 
 ```bash

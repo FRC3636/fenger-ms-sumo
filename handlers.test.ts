@@ -3,6 +3,7 @@ import {
   type State,
   type AppsScriptResponse,
   MATCH_DURATION_MS,
+  normalizeRvbServerIp,
   mapSheetData,
   applyStateUpdate,
   applyStart,
@@ -12,6 +13,7 @@ import {
 } from "./handlers";
 
 const baseState: State = {
+  gameMode: "sumo",
   match: 1,
   team1: 10,
   team2: 20,
@@ -22,7 +24,24 @@ const baseState: State = {
   winner: null,
   ondeck1: null,
   ondeck2: null,
+  autoAddTeams: true,
+  rvbBlue1: 111,
+  rvbBlue2: 112,
+  rvbRed1: 211,
+  rvbRed2: 212,
+  rvbServerIp: "localhost",
 };
+
+describe("normalizeRvbServerIp", () => {
+  test("normalizes hostname and strips protocol/path/port", () => {
+    expect(normalizeRvbServerIp("http://127.0.0.1:8080/action")).toBe("127.0.0.1");
+  });
+
+  test("returns localhost for empty/invalid values", () => {
+    expect(normalizeRvbServerIp("")).toBe("localhost");
+    expect(normalizeRvbServerIp(":::")).toBe("localhost");
+  });
+});
 
 const fullSheet: AppsScriptResponse = {
   matchNumber: 5,
@@ -100,6 +119,11 @@ describe("applyStateUpdate", () => {
     expect(applyStateUpdate(withWinner, {}, "up-down").winner).toBeNull();
   });
 
+  test("preserves winner when sumo visuals are not refreshed", () => {
+    const withWinner = { ...baseState, winner: "team1" as const };
+    expect(applyStateUpdate(withWinner, {}, null).winner).toBe("team1");
+  });
+
   test("ignores non-numeric team values", () => {
     const next = applyStateUpdate(baseState, { team1: "bad" as any }, "up-down");
     expect(next.team1).toBe(10); // unchanged
@@ -109,6 +133,20 @@ describe("applyStateUpdate", () => {
     const next = applyStateUpdate(baseState, { ondeck1: 77, ondeck2: 88 }, "up-down");
     expect(next.ondeck1).toBe(77);
     expect(next.ondeck2).toBe(88);
+  });
+
+  test("updates rvb fields", () => {
+    const next = applyStateUpdate(
+      baseState,
+      { gameMode: "rvb", rvbBlue1: 1, rvbBlue2: 2, rvbRed1: 3, rvbRed2: 4, rvbServerIp: "localhost:8080" },
+      null,
+    );
+    expect(next.gameMode).toBe("rvb");
+    expect(next.rvbBlue1).toBe(1);
+    expect(next.rvbBlue2).toBe(2);
+    expect(next.rvbRed1).toBe(3);
+    expect(next.rvbRed2).toBe(4);
+    expect(next.rvbServerIp).toBe("localhost");
   });
 
   test("does not mutate the original state", () => {

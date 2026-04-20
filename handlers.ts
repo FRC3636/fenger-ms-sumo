@@ -1,4 +1,5 @@
 export interface State {
+  gameMode: "sumo" | "rvb";
   match: number;
   team1: number;
   team2: number;
@@ -10,6 +11,11 @@ export interface State {
   ondeck1: number | null;
   ondeck2: number | null;
   autoAddTeams: boolean;
+  rvbBlue1: number;
+  rvbBlue2: number;
+  rvbRed1: number;
+  rvbRed2: number;
+  rvbServerIp: string;
 }
 
 export interface AppsScriptResponse {
@@ -24,7 +30,36 @@ export interface AppsScriptResponse {
   redOnDeck: number;
 }
 
+export interface RvbScoresResponse {
+  redScore: number;
+  blueScore: number;
+  redAutoScore: number;
+  blueAutoScore: number;
+  redPens: number;
+  bluePens: number;
+  matchRunning: boolean;
+  matchReady: boolean;
+  auto: boolean;
+  paused: boolean;
+  displayedPhase: string;
+  timeRemaining: number;
+  redBlink: number;
+  blueBlink: number;
+}
+
 export const MATCH_DURATION_MS = 2 * 60 * 1000;
+
+export function normalizeRvbServerIp(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "localhost";
+  const withProtocol = /^[a-zA-Z]+:\/\//.test(trimmed) ? trimmed : `http://${trimmed}`;
+  try {
+    const parsed = new URL(withProtocol);
+    return parsed.hostname || "localhost";
+  } catch {
+    return "localhost";
+  }
+}
 
 export function mapSheetData(data: AppsScriptResponse): {
   match: number; team1: number; team2: number;
@@ -50,9 +85,10 @@ export function mapSheetData(data: AppsScriptResponse): {
 export function applyStateUpdate(
   state: State,
   body: Partial<State>,
-  arrows: "up-down" | "down-up",
+  arrows: "up-down" | "down-up" | null,
 ): State {
   const next = { ...state };
+  if (body.gameMode === "sumo" || body.gameMode === "rvb") next.gameMode = body.gameMode;
   if (typeof body.match === "number") next.match = body.match;
   if (typeof body.team1 === "number") next.team1 = body.team1;
   if (typeof body.team2 === "number") next.team2 = body.team2;
@@ -61,8 +97,16 @@ export function applyStateUpdate(
   if (typeof body.ondeck1 === "number") next.ondeck1 = body.ondeck1;
   if (typeof body.ondeck2 === "number") next.ondeck2 = body.ondeck2;
   if (typeof body.autoAddTeams === "boolean") next.autoAddTeams = body.autoAddTeams;
-  next.arrows = arrows;
-  next.winner = null;
+  if (typeof body.rvbBlue1 === "number") next.rvbBlue1 = body.rvbBlue1;
+  if (typeof body.rvbBlue2 === "number") next.rvbBlue2 = body.rvbBlue2;
+  if (typeof body.rvbRed1 === "number") next.rvbRed1 = body.rvbRed1;
+  if (typeof body.rvbRed2 === "number") next.rvbRed2 = body.rvbRed2;
+  if (typeof body.rvbServerIp === "string") next.rvbServerIp = normalizeRvbServerIp(body.rvbServerIp);
+
+  if (arrows) {
+    next.arrows = arrows;
+    next.winner = null;
+  }
   return next;
 }
 

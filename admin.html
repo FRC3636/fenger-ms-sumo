@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Sumo Admin</title>
+    <title>FMS Admin</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,9 +14,8 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 28px;
-        padding: 32px;
+        gap: 20px;
+        padding: 28px;
       }
 
       h1 {
@@ -30,46 +29,42 @@
         background: #16213e;
         border: 1px solid #0f3460;
         border-radius: 12px;
-        padding: 32px 40px;
+        padding: 24px;
         width: 100%;
-        max-width: 420px;
+        max-width: 520px;
       }
 
-      .field {
-        margin-bottom: 20px;
+      .field { margin-bottom: 14px; }
+      .label {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #aaa;
+        margin-bottom: 6px;
       }
 
-      .teams-row {
-        display: flex;
-        gap: 12px;
-      }
-
-      .team-field {
-        flex: 1;
-      }
-
-      .team-field.red label { color: #e74c3c; }
-      .team-field.red input { border-color: #e74c3c; }
-      .team-field.red input:focus { border-color: #ff6b6b; }
-
-      .team-field.blue label { color: #3498db; }
-      .team-field.blue input { border-color: #3498db; }
-      .team-field.blue input:focus { border-color: #5dade2; }
-
-      .team-name-input {
+      input, select {
         width: 100%;
-        padding: 6px 8px;
-        font-size: 0.85rem;
+        padding: 10px 12px;
+        font-size: 1rem;
         background: #0f3460;
-        color: #ccc;
+        color: #fff;
         border: 2px solid #1a4a8a;
         border-radius: 8px;
-        text-align: center;
         outline: none;
-        margin-top: 6px;
-        transition: opacity 0.2s;
       }
-      .team-name-input:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      input:focus, select:focus { border-color: #f39c12; }
+
+      .teams-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .team-field.blue .label { color: #3498db; }
+      .team-field.red .label { color: #e74c3c; }
 
       .team-members {
         font-size: 0.75rem;
@@ -78,118 +73,136 @@
         min-height: 1em;
         text-align: center;
       }
-      .team-field.blue .team-name-input { border-color: rgba(52, 152, 219, 0.5); }
-      .team-field.blue .team-name-input:focus { border-color: #5dade2; }
-      .team-field.red .team-name-input { border-color: rgba(231, 76, 60, 0.5); }
-      .team-field.red .team-name-input:focus { border-color: #ff6b6b; }
 
-      label {
-        display: block;
+      .muted {
         font-size: 0.8rem;
-        text-transform: uppercase;
+        color: #9aa3b3;
+      }
+
+      .panel {
+        margin-top: 14px;
+        border: 1px solid #1f3f68;
+        border-radius: 10px;
+        padding: 14px;
+        background: rgba(12, 35, 67, 0.45);
+      }
+
+      .panel h2 {
+        font-size: 0.9rem;
         letter-spacing: 2px;
-        color: #aaa;
-        margin-bottom: 6px;
-      }
-
-      input[type="number"] {
-        width: 100%;
-        padding: 10px 14px;
-        font-size: 1.5rem;
-        font-weight: bold;
-        background: #0f3460;
-        color: #fff;
-        border: 2px solid #1a4a8a;
-        border-radius: 8px;
-        text-align: center;
-        outline: none;
-        transition: opacity 0.2s;
-      }
-
-      input[type="number"]:focus { border-color: #f39c12; }
-
-      input[type="number"]:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        color: #f39c12;
       }
 
       .btn-row {
         display: flex;
         gap: 10px;
-        margin-top: 8px;
+        margin-top: 10px;
       }
 
       button {
         flex: 1;
-        padding: 14px;
-        font-size: 0.95rem;
+        padding: 11px;
+        font-size: 0.85rem;
         font-weight: bold;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        text-align: center;
-        justify-content: center;
-        align-items: center;
+        letter-spacing: 1px;
         border: none;
         border-radius: 8px;
         cursor: pointer;
-        transition: opacity 0.2s, background 0.2s;
       }
 
-      button:disabled { opacity: 0.35; cursor: not-allowed; }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-      .btn-sheet {
-        background: #27ae60;
-        color: #1a1a2e;
-      }
-      .btn-sheet:not(:disabled):hover { background: #1e8449; }
+      .btn-save { background: #f39c12; color: #1a1a2e; }
+      .btn-sheet { background: #27ae60; color: #1a1a2e; }
+      .btn-start { background: #2ecc71; color: #1a1a2e; }
+      .btn-end { background: #e67e22; color: #1a1a2e; }
+      .btn-blue { background: #3498db; color: #1a1a2e; }
+      .btn-red { background: #e74c3c; color: #1a1a2e; }
+      .btn-neutral { background: #95a5a6; color: #1a1a2e; }
 
-      .sheet-warning {
-        margin: 8px 0 12px;
-        padding: 6px 10px;
-        font-size: 0.8rem;
-        color: #f0e68c;
+      .timer-display {
+        margin-top: 10px;
+        font-size: 3rem;
+        font-weight: bold;
         text-align: center;
-        background: rgba(240, 230, 140, 0.08);
-        border: 1px solid rgba(240, 230, 140, 0.3);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .timer-display.urgent { color: #e74c3c; }
+      .timer-display.idle { color: #555; }
+
+      .rvb-teams {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .rvb-team-group {
+        border-radius: 8px;
+        border: 1px solid #2c5f94;
+        padding: 10px;
+      }
+
+      .rvb-team-group.red {
+        border-color: #8e2f27;
+      }
+
+      .rvb-team-group h3 {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+        font-size: 0.75rem;
+      }
+
+      .rvb-team-group.blue h3 { color: #3498db; }
+      .rvb-team-group.red h3 { color: #e74c3c; }
+
+      .rvb-score-grid {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .rvb-score {
+        background: rgba(0, 0, 0, 0.25);
         border-radius: 6px;
+        padding: 8px;
+        text-align: center;
       }
 
-      .btn-save {
-        background: #f39c12;
-        color: #1a1a2e;
+      .rvb-score .name {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #aaa;
       }
-      .btn-save:not(:disabled):hover { background: #e67e22; }
 
-      .btn-start {
-        background: #2ecc71;
-        color: #1a1a2e;
+      .rvb-score .value {
+        margin-top: 4px;
+        font-size: 1.3rem;
+        font-weight: bold;
       }
-      .btn-start:not(:disabled):hover { background: #27ae60; }
 
-      .btn-blue-wins {
-        background: #3498db;
-        color: #1a1a2e;
-        display: none;
+      .action-grid {
+        margin-top: 8px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
-      .btn-blue-wins:not(:disabled):hover { background: #2980b9; }
 
-      .btn-red-wins {
-        background: #e74c3c;
-        color: #1a1a2e;
-        display: none;
+      .action-grid button {
+        font-size: 0.72rem;
+        padding: 10px 8px;
       }
-      .btn-red-wins:not(:disabled):hover { background: #c0392b; }
 
-      .btn-end {
-        background: #e67e22;
-        color: #1a1a2e;
-        display: none;
-      }
-      .btn-end:not(:disabled):hover { background: #d35400; }
-
+      .hidden { display: none; }
 
       #status {
-        min-height: 1.5rem;
+        min-height: 1.4rem;
         text-align: center;
         color: #2ecc71;
         font-size: 0.9rem;
@@ -197,137 +210,149 @@
         margin-top: 12px;
       }
 
-      .timer-display {
-        font-size: 3.5rem;
-        font-weight: bold;
-        text-align: center;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 4px;
-        color: #fff;
-        padding: 12px 0 4px;
-      }
-
-      .timer-display.urgent { color: #e74c3c; }
-      .timer-display.idle { color: #555; }
-
       .overlay-link {
         font-size: 0.85rem;
         color: #aaa;
       }
 
       .overlay-link a { color: #3498db; }
-
-      .tournament-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 16px;
-        padding: 10px 14px;
-        background: rgba(243, 156, 18, 0.06);
-        border: 1px solid rgba(243, 156, 18, 0.2);
-        border-radius: 8px;
-      }
-
-      .tournament-row label {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        color: #f39c12;
-        margin: 0;
-        cursor: pointer;
-      }
-
-      .toggle-switch {
-        position: relative;
-        width: 40px;
-        height: 22px;
-      }
-
-      .toggle-switch input { display: none; }
-
-      .toggle-slider {
-        position: absolute;
-        inset: 0;
-        background: #333;
-        border-radius: 22px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-
-      .toggle-slider::before {
-        content: "";
-        position: absolute;
-        width: 16px;
-        height: 16px;
-        left: 3px;
-        top: 3px;
-        background: #aaa;
-        border-radius: 50%;
-        transition: transform 0.2s, background 0.2s;
-      }
-
-      .toggle-switch input:checked + .toggle-slider { background: rgba(243, 156, 18, 0.3); }
-      .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: #f39c12; }
     </style>
   </head>
   <body>
-    <h1>Sumo Control</h1>
+    <h1>FMS Control</h1>
 
     <div class="card">
-      <p class="sheet-warning">Always verify team names and match number before starting.</p>
-
       <div class="field">
-        <label>Match Number</label>
-        <input type="number" id="match" min="1" value="1" />
+        <label class="label" for="game-mode">Game Mode</label>
+        <select id="game-mode" onchange="switchMode(this.value)">
+          <option value="sumo">Sumo</option>
+          <option value="rvb">Red vs Blue</option>
+        </select>
       </div>
 
-      <div class="field teams-row">
-        <div class="team-field blue">
-          <label>Blue</label>
-          <input type="number" id="team1" min="1" value="1" />
-          <input type="text" class="team-name-input" id="team1Name" value="Blue" placeholder="Team name" />
-          <div class="team-members" id="team1Members"></div>
+      <div id="sumo-panel" class="panel">
+        <h2>Sumo Match</h2>
+        <p class="muted">Always verify team names and match number before starting.</p>
+
+        <div class="field" style="margin-top:10px;">
+          <label class="label">Match Number</label>
+          <input type="number" id="match" min="1" value="1" />
         </div>
-        <div class="team-field red">
-          <label>Red</label>
-          <input type="number" id="team2" min="1" value="2" />
-          <input type="text" class="team-name-input" id="team2Name" value="Red" placeholder="Team name" />
-          <div class="team-members" id="team2Members"></div>
+
+        <div class="teams-row">
+          <div class="team-field blue">
+            <label class="label">Blue</label>
+            <input type="number" id="team1" min="1" value="1" />
+            <input type="text" id="team1Name" value="Blue" placeholder="Blue name" style="margin-top:6px;" />
+            <div class="team-members" id="team1Members"></div>
+          </div>
+          <div class="team-field red">
+            <label class="label">Red</label>
+            <input type="number" id="team2" min="1" value="2" />
+            <input type="text" id="team2Name" value="Red" placeholder="Red name" style="margin-top:6px;" />
+            <div class="team-members" id="team2Members"></div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-sheet" id="btn-sheet" onclick="loadFromSheet()">Load from Sheet</button>
+          <button class="btn-save" id="btn-save" onclick="saveSumo()">Set Match Info</button>
+        </div>
+
+        <div id="ondeck-display" class="field hidden" style="margin-top:10px;">
+          <span class="muted">On Deck:</span>
+          <span style="color:#5dade2; margin-left:6px;">Blue <strong id="ondeck1-disp"></strong></span>
+          <span style="color:#ec7063; margin-left:10px;">Red <strong id="ondeck2-disp"></strong></span>
+        </div>
+
+        <div class="field" style="margin-top:10px;">
+          <label class="label">
+            <input type="checkbox" id="tournament-toggle" onchange="setTournamentMode(this.checked)" style="width:auto; margin-right:8px;" />
+            Auto Add Teams
+          </label>
+        </div>
+
+        <div class="timer-display idle" id="timer">2:00</div>
+
+        <div class="btn-row">
+          <button class="btn-start" id="btn-start" onclick="startMatch()">Start Match</button>
+          <button class="btn-blue hidden" id="btn-blue-wins" onclick="pickWinner('team1')">Blue Wins</button>
+          <button class="btn-red hidden" id="btn-red-wins" onclick="pickWinner('team2')">Red Wins</button>
+        </div>
+        <div class="btn-row hidden" id="btn-end-row">
+          <button class="btn-end" id="btn-end" onclick="endMatch()">End Match</button>
         </div>
       </div>
 
-      <div class="btn-row">
-        <button class="btn-sheet" id="btn-sheet" onclick="loadFromSheet()">Load from Sheet</button>
-        <button class="btn-save" id="btn-save" onclick="save()">Set Match Info</button>
-      </div>
+      <div id="rvb-panel" class="panel hidden">
+        <h2>Red vs Blue Scoring</h2>
+        <p class="muted">No spreadsheet integration in this mode. Scoring server port is fixed at 8080.</p>
 
-      <div id="ondeck-display" style="display:none; margin-top:10px; padding:8px 10px; background:rgba(255,255,255,0.05); border-radius:8px;">
-        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:6px;text-align:center;">On Deck</div>
-        <div style="display:flex;gap:12px;justify-content:center;font-size:0.85rem;">
-          <span style="color:#5dade2">Blue: <strong id="ondeck1-disp"></strong></span>
-          <span style="color:#ec7063">Red: <strong id="ondeck2-disp"></strong></span>
+        <div class="field" style="margin-top:10px;">
+          <label class="label" for="rvb-server-ip">Scoring Server IP / Hostname</label>
+          <input type="text" id="rvb-server-ip" value="localhost" placeholder="localhost or 10.0.0.42" />
+        </div>
+
+        <div class="rvb-teams">
+          <div class="rvb-team-group blue">
+            <h3>Blue Alliance</h3>
+            <div class="field">
+              <label class="label">Blue Team 1</label>
+              <input type="number" id="rvb-blue1" min="1" value="1" />
+            </div>
+            <div class="field">
+              <label class="label">Blue Team 2</label>
+              <input type="number" id="rvb-blue2" min="1" value="2" />
+            </div>
+          </div>
+          <div class="rvb-team-group red">
+            <h3>Red Alliance</h3>
+            <div class="field">
+              <label class="label">Red Team 1</label>
+              <input type="number" id="rvb-red1" min="1" value="3" />
+            </div>
+            <div class="field">
+              <label class="label">Red Team 2</label>
+              <input type="number" id="rvb-red2" min="1" value="4" />
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-save" onclick="saveRvbConfig()">Save RvB Config</button>
+          <button class="btn-neutral" onclick="refreshRvbScores()">Refresh Scores</button>
+        </div>
+
+        <div class="rvb-score-grid" id="rvb-score-grid">
+          <div class="rvb-score"><div class="name">Blue Score</div><div class="value" id="rvb-blue-score">0</div></div>
+          <div class="rvb-score"><div class="name">Red Score</div><div class="value" id="rvb-red-score">0</div></div>
+          <div class="rvb-score"><div class="name">Blue Auto</div><div class="value" id="rvb-blue-auto">0</div></div>
+          <div class="rvb-score"><div class="name">Red Auto</div><div class="value" id="rvb-red-auto">0</div></div>
+          <div class="rvb-score"><div class="name">Blue Pens</div><div class="value" id="rvb-blue-pens">0</div></div>
+          <div class="rvb-score"><div class="name">Red Pens</div><div class="value" id="rvb-red-pens">0</div></div>
+          <div class="rvb-score"><div class="name">Phase</div><div class="value" id="rvb-phase" style="font-size:0.95rem;">Idle</div></div>
+          <div class="rvb-score"><div class="name">Time Remaining</div><div class="value" id="rvb-time">0</div></div>
+        </div>
+
+        <div class="action-grid">
+          <button class="btn-start" onclick="sendRvbAction('start')">Start / Resume</button>
+          <button class="btn-neutral" onclick="sendRvbAction('pause')">Pause / Resume</button>
+          <button class="btn-neutral" onclick="sendRvbAction('startTeleop')">Start Teleop</button>
+          <button class="btn-end" onclick="sendRvbAction('clear')">Clear Match</button>
+          <button class="btn-red" onclick="sendRvbAction('redScoreUp')">Red Score +</button>
+          <button class="btn-red" onclick="sendRvbAction('redScoreDown')">Red Score -</button>
+          <button class="btn-blue" onclick="sendRvbAction('blueScoreUp')">Blue Score +</button>
+          <button class="btn-blue" onclick="sendRvbAction('blueScoreDown')">Blue Score -</button>
+          <button class="btn-red" onclick="sendRvbAction('redAutoUp')">Red Auto +</button>
+          <button class="btn-red" onclick="sendRvbAction('redAutoDown')">Red Auto -</button>
+          <button class="btn-blue" onclick="sendRvbAction('blueAutoUp')">Blue Auto +</button>
+          <button class="btn-blue" onclick="sendRvbAction('blueAutoDown')">Blue Auto -</button>
+          <button class="btn-red" onclick="sendRvbAction('redPenaltyUp')">Red Pen +</button>
+          <button class="btn-red" onclick="sendRvbAction('redPenaltyDown')">Red Pen -</button>
+          <button class="btn-blue" onclick="sendRvbAction('bluePenaltyUp')">Blue Pen +</button>
+          <button class="btn-blue" onclick="sendRvbAction('bluePenaltyDown')">Blue Pen -</button>
         </div>
       </div>
-
-      <div class="tournament-row">
-        <label for="tournament-toggle">Auto Add Teams</label>
-        <label class="toggle-switch">
-          <input type="checkbox" id="tournament-toggle" onchange="setTournamentMode(this.checked)" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="timer-display idle" id="timer">2:00</div>
-
-      <div class="btn-row">
-        <button class="btn-start" id="btn-start" onclick="startMatch()">Start Match</button>
-        <button class="btn-blue-wins" id="btn-blue-wins" onclick="pickWinner('team1')">Blue Wins</button>
-        <button class="btn-red-wins" id="btn-red-wins" onclick="pickWinner('team2')">Red Wins</button>
-      </div>
-      <div class="btn-row" id="btn-end-row" style="display:none">
-        <button class="btn-end" id="btn-end" onclick="endMatch()">End Match</button>
-      </div>
-
 
       <p id="status"></p>
     </div>
@@ -338,20 +363,55 @@
       let timerEnd = null;
       let tickInterval = null;
       let currentWinner = null;
+      let gameMode = "sumo";
 
       async function load() {
         try {
           const res = await fetch("/api/state");
           if (!res.ok) { flash("Failed to load state"); return; }
           const data = await res.json();
-          document.getElementById("match").value = data.match;
-          document.getElementById("team1").value = data.team1;
-          document.getElementById("team2").value = data.team2;
-          document.getElementById("team1Name").value = data.team1Name ?? "Blue";
-          document.getElementById("team2Name").value = data.team2Name ?? "Red";
-          currentWinner = data.winner ?? null;
-          document.getElementById("tournament-toggle").checked = data.autoAddTeams ?? false;
+          hydrateState(data);
           applyState(data.timerEnd);
+          setModeUI(data.gameMode || "sumo");
+          if ((data.gameMode || "sumo") === "rvb") await refreshRvbScores(false);
+        } catch {
+          flash("Connection error");
+        }
+      }
+
+      function hydrateState(data) {
+        document.getElementById("game-mode").value = data.gameMode || "sumo";
+        document.getElementById("match").value = data.match;
+        document.getElementById("team1").value = data.team1;
+        document.getElementById("team2").value = data.team2;
+        document.getElementById("team1Name").value = data.team1Name ?? "Blue";
+        document.getElementById("team2Name").value = data.team2Name ?? "Red";
+        document.getElementById("tournament-toggle").checked = data.autoAddTeams ?? false;
+        document.getElementById("rvb-blue1").value = data.rvbBlue1 ?? 1;
+        document.getElementById("rvb-blue2").value = data.rvbBlue2 ?? 2;
+        document.getElementById("rvb-red1").value = data.rvbRed1 ?? 3;
+        document.getElementById("rvb-red2").value = data.rvbRed2 ?? 4;
+        document.getElementById("rvb-server-ip").value = data.rvbServerIp ?? "localhost";
+        currentWinner = data.winner ?? null;
+      }
+
+      function setModeUI(mode) {
+        gameMode = mode;
+        document.getElementById("sumo-panel").classList.toggle("hidden", mode !== "sumo");
+        document.getElementById("rvb-panel").classList.toggle("hidden", mode !== "rvb");
+      }
+
+      async function switchMode(mode) {
+        try {
+          const res = await fetch("/api/state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ gameMode: mode }),
+          });
+          if (!res.ok) { flash("Failed to switch mode"); return; }
+          setModeUI(mode);
+          if (mode === "rvb") await refreshRvbScores(false);
+          flash(mode === "rvb" ? "Red vs Blue mode enabled" : "Sumo mode enabled");
         } catch {
           flash("Connection error");
         }
@@ -360,13 +420,10 @@
       function applyState(end) {
         timerEnd = end;
         const matchActive = timerEnd !== null;
-
-        document.getElementById("btn-start").style.display = matchActive ? "none" : "flex";
-        document.getElementById("btn-blue-wins").style.display = matchActive ? "flex" : "none";
-        document.getElementById("btn-red-wins").style.display = matchActive ? "flex" : "none";
-        document.getElementById("btn-end-row").style.display = matchActive ? "flex" : "none";
-        document.getElementById("btn-end").style.display = matchActive ? "flex" : "none";
-
+        document.getElementById("btn-start").classList.toggle("hidden", matchActive);
+        document.getElementById("btn-blue-wins").classList.toggle("hidden", !matchActive);
+        document.getElementById("btn-red-wins").classList.toggle("hidden", !matchActive);
+        document.getElementById("btn-end-row").classList.toggle("hidden", !matchActive);
         document.getElementById("btn-sheet").disabled = matchActive;
         document.getElementById("btn-save").disabled = matchActive;
 
@@ -395,28 +452,13 @@
       }
 
       async function setTournamentMode(enabled) {
-        try {
-          const res = await fetch("/api/state", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              match: parseInt(document.getElementById("match").value),
-              team1: parseInt(document.getElementById("team1").value),
-              team2: parseInt(document.getElementById("team2").value),
-              team1Name: document.getElementById("team1Name").value.trim() || "Blue",
-              team2Name: document.getElementById("team2Name").value.trim() || "Red",
-              autoAddTeams: enabled,
-            }),
-          });
-          if (!res.ok) { flash("Failed to update tournament mode"); return; }
-          flash(enabled ? "Auto Add Teams ON" : "Auto Add Teams OFF");
-        } catch {
-          flash("Connection error");
-        }
+        await saveSumo({ autoAddTeams: enabled }, false);
+        flash(enabled ? "Auto Add Teams ON" : "Auto Add Teams OFF");
       }
 
-      async function save(extra = {}) {
+      async function saveSumo(extra = {}, showFlash = true) {
         const body = {
+          gameMode: "sumo",
           match: parseInt(document.getElementById("match").value),
           team1: parseInt(document.getElementById("team1").value),
           team2: parseInt(document.getElementById("team2").value),
@@ -431,21 +473,38 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           });
-          if (!res.ok) { flash("Save failed"); return; }
-          document.getElementById("btn-start").disabled = false;
-          flash("Match info updated!");
+          if (!res.ok) { flash("Save failed"); return false; }
+          if (showFlash) flash("Match info updated!");
+          return true;
         } catch {
           flash("Connection error");
+          return false;
         }
       }
 
-      async function endMatch() {
+      async function saveRvbConfig(showFlash = true) {
+        const body = {
+          gameMode: "rvb",
+          rvbBlue1: parseInt(document.getElementById("rvb-blue1").value),
+          rvbBlue2: parseInt(document.getElementById("rvb-blue2").value),
+          rvbRed1: parseInt(document.getElementById("rvb-red1").value),
+          rvbRed2: parseInt(document.getElementById("rvb-red2").value),
+          rvbServerIp: document.getElementById("rvb-server-ip").value.trim() || "localhost",
+        };
         try {
-          const res = await fetch("/api/end", { method: "POST" });
-          if (!res.ok) { flash("End match failed"); return; }
-          applyState(null);
+          const res = await fetch("/api/state", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) { flash("RvB config save failed"); return false; }
+          const data = await res.json();
+          document.getElementById("rvb-server-ip").value = data.rvbServerIp;
+          if (showFlash) flash("RvB config updated!");
+          return true;
         } catch {
           flash("Connection error");
+          return false;
         }
       }
 
@@ -456,6 +515,16 @@
           const data = await res.json();
           currentWinner = null;
           applyState(data.timerEnd);
+        } catch {
+          flash("Connection error");
+        }
+      }
+
+      async function endMatch() {
+        try {
+          const res = await fetch("/api/end", { method: "POST" });
+          if (!res.ok) { flash("End match failed"); return; }
+          applyState(null);
         } catch {
           flash("Connection error");
         }
@@ -495,13 +564,14 @@
           document.getElementById("team1Members").textContent = data.team1Members || "";
           document.getElementById("team2Members").textContent = data.team2Members || "";
 
-          if (data.ondeck1 && data.ondeck2) {
+          const hasOndeck = data.ondeck1 && data.ondeck2;
+          document.getElementById("ondeck-display").classList.toggle("hidden", !hasOndeck);
+          if (hasOndeck) {
             document.getElementById("ondeck1-disp").textContent = "#" + data.ondeck1;
             document.getElementById("ondeck2-disp").textContent = "#" + data.ondeck2;
-            document.getElementById("ondeck-display").style.display = "block";
           }
 
-          await save({ ondeck1: data.ondeck1 ?? null, ondeck2: data.ondeck2 ?? null });
+          await saveSumo({ ondeck1: data.ondeck1 ?? null, ondeck2: data.ondeck2 ?? null });
           flash("Loaded from sheet!");
         } catch {
           flash("Sheet load error");
@@ -525,13 +595,57 @@
         }
       }
 
+      async function sendRvbAction(action) {
+        const ok = await saveRvbConfig(false);
+        if (!ok) return;
+        try {
+          const res = await fetch("/api/rvb-action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, count: 1 }),
+          });
+          if (!res.ok) { flash("RvB action failed"); return; }
+          await refreshRvbScores(false);
+          flash(`Sent ${action}`);
+        } catch {
+          flash("Connection error");
+        }
+      }
+
+      async function refreshRvbScores(showFlash = true) {
+        try {
+          const res = await fetch("/api/rvb-scores");
+          if (!res.ok) {
+            if (showFlash) flash("Failed to load RvB scores");
+            return;
+          }
+          const data = await res.json();
+          document.getElementById("rvb-blue-score").textContent = String(data.blueScore ?? 0);
+          document.getElementById("rvb-red-score").textContent = String(data.redScore ?? 0);
+          document.getElementById("rvb-blue-auto").textContent = String(data.blueAutoScore ?? 0);
+          document.getElementById("rvb-red-auto").textContent = String(data.redAutoScore ?? 0);
+          document.getElementById("rvb-blue-pens").textContent = String(data.bluePens ?? 0);
+          document.getElementById("rvb-red-pens").textContent = String(data.redPens ?? 0);
+          document.getElementById("rvb-phase").textContent = data.displayedPhase || "Unknown";
+          document.getElementById("rvb-time").textContent = String(data.timeRemaining ?? 0);
+          if (showFlash) flash("RvB scores updated");
+        } catch {
+          if (showFlash) flash("Connection error");
+        }
+      }
+
       function flash(msg) {
         const el = document.getElementById("status");
         el.textContent = msg;
-        setTimeout(() => (el.textContent = ""), 2000);
+        setTimeout(() => {
+          if (el.textContent === msg) el.textContent = "";
+        }, 2000);
       }
 
       load();
+      setInterval(() => {
+        if (gameMode === "rvb") refreshRvbScores(false);
+      }, 1000);
     </script>
   </body>
 </html>

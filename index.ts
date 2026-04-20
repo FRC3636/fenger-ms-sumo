@@ -3,12 +3,14 @@ import overlayHtml from "./overlay.html";
 import {
   type State,
   type AppsScriptResponse,
+  type RvbScoresResponse,
   mapSheetData,
   applyStateUpdate,
   applyStart,
   applyEnd,
   applyReset,
   applyWinner,
+  normalizeRvbServerIp,
 } from "./handlers";
 
 const RESET = "\x1b[0m";
@@ -33,6 +35,53 @@ const APPS_SCRIPT_BASE =
   "https://script.google.com/macros/s/AKfycbwmPKewvI1HA34cuwx9tl2YprifSiiyPXuiBrv6Orxv-xcuPk0oNSTn3VS3rHg7GKJIQA/exec";
 
 const APPS_SCRIPT_URL = `${APPS_SCRIPT_BASE}?token=${TOKEN}`;
+const RVB_SERVER_PORT = 8080;
+
+const RVB_ACTIONS = [
+  "start",
+  "pause",
+  "startTeleop",
+  "clear",
+  "redScoreUp",
+  "redScoreDown",
+  "blueScoreUp",
+  "blueScoreDown",
+  "redAutoUp",
+  "redAutoDown",
+  "blueAutoUp",
+  "blueAutoDown",
+  "redPenaltyUp",
+  "redPenaltyDown",
+  "bluePenaltyUp",
+  "bluePenaltyDown",
+] as const;
+
+function getRvbBaseUrl(serverIp: string) {
+  return `http://${normalizeRvbServerIp(serverIp)}:${RVB_SERVER_PORT}`;
+}
+
+async function fetchRvbScores(serverIp: string): Promise<RvbScoresResponse> {
+  const baseUrl = getRvbBaseUrl(serverIp);
+  const res = await fetch(`${baseUrl}/scores`);
+  if (!res.ok) {
+    throw new Error(`RVB /scores failed: HTTP ${res.status}`);
+  }
+  return await res.json() as RvbScoresResponse;
+}
+
+async function postRvbAction(serverIp: string, action: string, count = 1) {
+  const baseUrl = getRvbBaseUrl(serverIp);
+  const res = await fetch(`${baseUrl}/action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, count }),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`RVB /action failed: HTTP ${res.status} ${text}`);
+  }
+  return text;
+}
 
 async function fetchAppsScript(autoAddTeams = false): Promise<AppsScriptResponse | null> {
   const url = autoAddTeams ? `${APPS_SCRIPT_URL}&autoAddTeams=true` : APPS_SCRIPT_URL;
@@ -62,6 +111,7 @@ async function fetchSheetRow(autoAddTeams = false) {
 
 
 const state: State = {
+  gameMode: "sumo",
   match: 1,
   team1: 1,
   team2: 2,
@@ -73,6 +123,11 @@ const state: State = {
   ondeck1: null,
   ondeck2: null,
   autoAddTeams: true,
+  rvbBlue1: 1,
+  rvbBlue2: 2,
+  rvbRed1: 3,
+  rvbRed2: 4,
+  rvbServerIp: "localhost",
 };
 
 Bun.serve({
@@ -93,10 +148,19 @@ Bun.serve({
           log("api", RED, "POST /api/state — invalid JSON");
           return new Response("Invalid JSON", { status: 400 });
         }
-        const prev = { match: state.match, team1: state.team1, team2: state.team2, team1Name: state.team1Name, team2Name: state.team2Name };
-        const arrows = Math.random() < 0.5 ? "up-down" : "down-up" as const;
+        const prev = { gameMode: state.gameMode, match: state.match, team1: state.team1, team2: state.team2, team1Name: state.team1Name, team2Name: state.team2Name };
+        const updatesSumo =
+          body.match !== undefined ||
+          body.team1 !== undefined ||
+          body.team2 !== undefined ||
+          body.team1Name !== undefined ||
+          body.team2Name !== undefined ||
+          body.ondeck1 !== undefined ||
+          body.ondeck2 !== undefined ||
+          body.autoAddTeams !== undefined;
+        const arrows: "up-down" | "down-up" | null = updatesSumo ? (Math.random() < 0.5 ? "up-down" : "down-up") : null;
         Object.assign(state, applyStateUpdate(state, body, arrows));
-        log("api", YELLOW, `POST /api/state  match=${prev.match}→${state.match}  blue=${prev.team1} "${prev.team1Name}"→${state.team1} "${state.team1Name}"  red=${prev.team2} "${prev.team2Name}"→${state.team2} "${state.team2Name}"  arrows=${state.arrows}`);
+        log("api", YELLOW, `POST /api/state  mode=${prev.gameMode}→${state.gameMode}  match=${prev.match}→${state.match}  blue=${prev.team1} "${prev.team1Name}"→${state.team1} "${state.team1Name}"  red=${prev.team2} "${prev.team2Name}"→${state.team2} "${state.team2Name}"  rvbServer=${state.rvbServerIp}  arrows=${state.arrows}`);
         return Response.json(state);
       },
     },
@@ -188,6 +252,50 @@ Bun.serve({
         } catch (err) {
           log("api", RED, "GET /api/sheet — exception:", err);
           return new Response("Sheet fetch failed", { status: 502 });
+        }
+      },
+    },
+
+    "/api/rvb-scores": {
+      GET: async () => {
+        try {
+          const data = await fetchRvbScores(state.rvbServerIp);
+          return Response.json(data);
+        } catch (err) {
+          log("rvb", RED, "GET /api/rvb-scores failed:", err);
+          return new Response("RVB scores fetch failed", { status: 502 });
+        }
+      },
+    },
+
+    "/api/rvb-actions": {
+      GET: () => Response.json({ actions: RVB_ACTIONS }),
+    },
+
+    "/api/rvb-action": {
+      POST: async (req) => {
+        let body: { action?: string; count?: number } = {};
+        try {
+          body = await req.json() as { action?: string; count?: number };
+        } catch {
+          return new Response("Invalid JSON", { status: 400 });
+        }
+
+        if (!body.action || !RVB_ACTIONS.includes(body.action as typeof RVB_ACTIONS[number])) {
+          return Response.json({ error: "invalid action", validActions: RVB_ACTIONS }, { status: 400 });
+        }
+        const count = Number.isInteger(body.count) ? body.count! : 1;
+        if (count < 1 || count > 100) {
+          return Response.json({ error: "count must be an integer between 1 and 100" }, { status: 400 });
+        }
+
+        try {
+          const responseText = await postRvbAction(state.rvbServerIp, body.action, count);
+          log("rvb", GREEN, `POST /api/rvb-action  action=${body.action} count=${count} server=${state.rvbServerIp}`);
+          return new Response(responseText);
+        } catch (err) {
+          log("rvb", RED, `POST /api/rvb-action failed for action=${body.action}:`, err);
+          return new Response("RVB action failed", { status: 502 });
         }
       },
     },

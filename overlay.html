@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Sumo Overlay</title>
+    <title>FMS Overlay</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -11,6 +11,8 @@
         font-family: "Arial Black", "Impact", sans-serif;
         overflow: hidden;
       }
+
+      .hidden { display: none !important; }
 
       .match-badge {
         position: fixed;
@@ -47,14 +49,9 @@
         letter-spacing: 4px;
         font-variant-numeric: tabular-nums;
         text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-        transition: border-color 0.3s, color 0.3s;
       }
 
-      .timer.urgent {
-        border-color: #e74c3c;
-        color: #e74c3c;
-      }
-
+      .timer.urgent { border-color: #e74c3c; color: #e74c3c; }
       .timer.hidden { display: none; }
 
       .team-wrapper {
@@ -113,7 +110,6 @@
 
       .team1-wrapper .team-box { border-color: #3498db; }
       .team1-wrapper .team-number { color: #3498db; }
-
       .team2-wrapper .team-box { border-color: #e74c3c; }
       .team2-wrapper .team-number { color: #e74c3c; }
 
@@ -136,13 +132,7 @@
       }
 
       .arrows.visible { display: flex; }
-
-      .arrow {
-        font-size: 64px;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-        line-height: 1;
-      }
-
+      .arrow { font-size: 64px; line-height: 1; }
       .arrow:first-child { color: #3498db; }
       .arrow:last-child { color: #e74c3c; }
 
@@ -157,11 +147,9 @@
         border-radius: 12px;
         padding: 16px 40px;
         text-align: center;
-        text-shadow: 0 3px 12px rgba(0,0,0,0.9);
       }
 
       .winner-banner.visible { display: block; }
-
       .winner-label {
         font-size: 20px;
         color: #fff;
@@ -169,121 +157,258 @@
         text-transform: uppercase;
         margin-bottom: 6px;
       }
-
       .winner-name {
         font-size: 52px;
         font-weight: bold;
         text-transform: uppercase;
         letter-spacing: 3px;
-        line-height: 1;
       }
-
       .winner-banner.team1 { border-color: #3498db; }
       .winner-banner.team1 .winner-name { color: #3498db; }
       .winner-banner.team2 { border-color: #e74c3c; }
       .winner-banner.team2 .winner-name { color: #e74c3c; }
 
+      #rvb-root {
+        position: fixed;
+        inset: 0;
+        display: none;
+      }
+
+      #rvb-root.visible { display: block; }
+
+      .rvb-header {
+        position: fixed;
+        top: 26px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.78);
+        border: 2px solid #f39c12;
+        border-radius: 10px;
+        padding: 10px 18px;
+        color: #fff;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        text-align: center;
+      }
+
+      .rvb-header .phase {
+        color: #f39c12;
+        font-size: 20px;
+      }
+
+      .rvb-header .time {
+        margin-top: 4px;
+        font-size: 34px;
+      }
+
+      .rvb-alliance {
+        position: fixed;
+        bottom: 40px;
+        width: 420px;
+        padding: 18px;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.78);
+      }
+
+      .rvb-alliance.blue { left: 40px; border: 3px solid #3498db; }
+      .rvb-alliance.red { right: 40px; border: 3px solid #e74c3c; }
+
+      .rvb-title {
+        font-size: 20px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+      }
+
+      .rvb-alliance.blue .rvb-title { color: #3498db; }
+      .rvb-alliance.red .rvb-title { color: #e74c3c; }
+
+      .rvb-score {
+        margin-top: 6px;
+        font-size: 78px;
+        line-height: 1;
+        color: #fff;
+      }
+
+      .rvb-sub {
+        margin-top: 6px;
+        font-size: 18px;
+        color: #ddd;
+        letter-spacing: 1px;
+      }
+
+      .rvb-teams {
+        margin-top: 10px;
+        font-size: 28px;
+        color: #fff;
+        letter-spacing: 2px;
+      }
     </style>
   </head>
   <body>
-    <div class="match-badge">Match <span id="match-num">1</span></div>
-    <div class="timer hidden" id="timer">2:00</div>
+    <div id="sumo-root">
+      <div class="match-badge">Match <span id="match-num">1</span></div>
+      <div class="timer hidden" id="timer">2:00</div>
 
-    <div class="team-wrapper team1-wrapper">
-      <div class="team-box">
-        <div class="team-label">Team</div>
-        <div class="team-number" id="team1-num">1</div>
-        <div class="team-name" id="team1-name">Blue</div>
+      <div class="team-wrapper team1-wrapper">
+        <div class="team-box">
+          <div class="team-label">Team</div>
+          <div class="team-number" id="team1-num">1</div>
+          <div class="team-name" id="team1-name">Blue</div>
+        </div>
+        <div class="ondeck-label" id="ondeck1-label">On Deck: <strong id="ondeck1-num"></strong></div>
       </div>
-      <div class="ondeck-label" id="ondeck1-label">On Deck: <strong id="ondeck1-num"></strong></div>
-    </div>
 
-    <div class="arrows" id="arrows">
-      <span class="arrow" id="arrow1">&#9650;</span>
-      <span class="arrow" id="arrow2">&#9660;</span>
-    </div>
-
-    <div class="winner-banner" id="winner-banner">
-      <div class="winner-label">Winner</div>
-      <div class="winner-name" id="winner-name"></div>
-    </div>
-
-    <div class="team-wrapper team2-wrapper">
-      <div class="team-box">
-        <div class="team-label">Team</div>
-        <div class="team-number" id="team2-num">2</div>
-        <div class="team-name" id="team2-name">Red</div>
+      <div class="arrows" id="arrows">
+        <span class="arrow" id="arrow1">&#9650;</span>
+        <span class="arrow" id="arrow2">&#9660;</span>
       </div>
-      <div class="ondeck-label" id="ondeck2-label">On Deck: <strong id="ondeck2-num"></strong></div>
+
+      <div class="winner-banner" id="winner-banner">
+        <div class="winner-label">Winner</div>
+        <div class="winner-name" id="winner-name"></div>
+      </div>
+
+      <div class="team-wrapper team2-wrapper">
+        <div class="team-box">
+          <div class="team-label">Team</div>
+          <div class="team-number" id="team2-num">2</div>
+          <div class="team-name" id="team2-name">Red</div>
+        </div>
+        <div class="ondeck-label" id="ondeck2-label">On Deck: <strong id="ondeck2-num"></strong></div>
+      </div>
+    </div>
+
+    <div id="rvb-root">
+      <div class="rvb-header">
+        <div class="phase" id="rvb-phase">Controllers Down</div>
+        <div class="time" id="rvb-time">0</div>
+      </div>
+
+      <div class="rvb-alliance blue">
+        <div class="rvb-title">Blue Alliance</div>
+        <div class="rvb-score" id="rvb-blue-score">0</div>
+        <div class="rvb-sub">Auto <span id="rvb-blue-auto">0</span> | Pens <span id="rvb-blue-pens">0</span></div>
+        <div class="rvb-teams"><span id="rvb-blue1">#1</span> & <span id="rvb-blue2">#2</span></div>
+      </div>
+
+      <div class="rvb-alliance red">
+        <div class="rvb-title">Red Alliance</div>
+        <div class="rvb-score" id="rvb-red-score">0</div>
+        <div class="rvb-sub">Auto <span id="rvb-red-auto">0</span> | Pens <span id="rvb-red-pens">0</span></div>
+        <div class="rvb-teams"><span id="rvb-red1">#3</span> & <span id="rvb-red2">#4</span></div>
+      </div>
     </div>
 
     <script>
       let timerEnd = null;
       let tickInterval = null;
+      let gameMode = "sumo";
 
       async function poll() {
         try {
           const res = await fetch("/api/state");
+          if (!res.ok) return;
           const data = await res.json();
-          document.getElementById("match-num").textContent = data.match;
-          document.getElementById("team1-num").textContent = data.team1;
-          document.getElementById("team2-num").textContent = data.team2;
-          document.getElementById("team1-name").textContent = data.team1Name ?? "Blue";
-          document.getElementById("team2-name").textContent = data.team2Name ?? "Red";
-
-          const arrowsEl = document.getElementById("arrows");
-          if (data.arrows) {
-            arrowsEl.classList.add("visible");
-            document.getElementById("arrow1").innerHTML = data.arrows === "up-down" ? "&#9650;" : "&#9660;";
-            document.getElementById("arrow2").innerHTML = data.arrows === "up-down" ? "&#9660;" : "&#9650;";
+          gameMode = data.gameMode || "sumo";
+          setMode(gameMode);
+          if (gameMode === "sumo") {
+            applySumoState(data);
           } else {
-            arrowsEl.classList.remove("visible");
+            applyRvbTeams(data);
+            await pollRvbScores();
           }
+        } catch {
+          // keep retrying
+        }
+      }
 
-          const od1 = document.getElementById("ondeck1-label");
-          const od2 = document.getElementById("ondeck2-label");
-          if (data.ondeck1 != null) {
-            document.getElementById("ondeck1-num").textContent = "#" + data.ondeck1;
-            od1.classList.add("visible");
-          } else {
-            od1.classList.remove("visible");
-          }
-          if (data.ondeck2 != null) {
-            document.getElementById("ondeck2-num").textContent = "#" + data.ondeck2;
-            od2.classList.add("visible");
-          } else {
-            od2.classList.remove("visible");
-          }
+      function setMode(mode) {
+        document.getElementById("sumo-root").classList.toggle("hidden", mode !== "sumo");
+        document.getElementById("rvb-root").classList.toggle("visible", mode === "rvb");
+      }
 
-          const bannerEl = document.getElementById("winner-banner");
-          const hasWinner = !!data.winner;
-          document.querySelector(".match-badge").style.display = hasWinner ? "none" : "";
-          document.getElementById("timer").style.display = hasWinner ? "none" : "";
-          document.querySelector(".team1-wrapper").style.visibility = hasWinner ? "hidden" : "";
-          document.querySelector(".team2-wrapper").style.visibility = hasWinner ? "hidden" : "";
-          document.getElementById("arrows").style.display = hasWinner ? "none" : "";
-          if (hasWinner) {
-            const isTeam1 = data.winner === "team1";
-            bannerEl.className = "winner-banner visible " + data.winner;
-            document.getElementById("winner-name").textContent = isTeam1 ? (data.team1Name ?? "Blue") : (data.team2Name ?? "Red");
-          } else {
-            bannerEl.className = "winner-banner";
-          }
+      function applySumoState(data) {
+        document.getElementById("match-num").textContent = data.match;
+        document.getElementById("team1-num").textContent = data.team1;
+        document.getElementById("team2-num").textContent = data.team2;
+        document.getElementById("team1-name").textContent = data.team1Name ?? "Blue";
+        document.getElementById("team2-name").textContent = data.team2Name ?? "Red";
 
-          if (data.timerEnd !== timerEnd) {
-            timerEnd = data.timerEnd;
-            if (timerEnd) {
-              document.getElementById("timer").classList.remove("hidden");
-              if (!tickInterval) tickInterval = setInterval(tick, 250);
-              tick();
-            } else {
-              clearInterval(tickInterval);
-              tickInterval = null;
-              document.getElementById("timer").classList.add("hidden");
-            }
+        const arrowsEl = document.getElementById("arrows");
+        if (data.arrows) {
+          arrowsEl.classList.add("visible");
+          document.getElementById("arrow1").innerHTML = data.arrows === "up-down" ? "&#9650;" : "&#9660;";
+          document.getElementById("arrow2").innerHTML = data.arrows === "up-down" ? "&#9660;" : "&#9650;";
+        } else {
+          arrowsEl.classList.remove("visible");
+        }
+
+        const od1 = document.getElementById("ondeck1-label");
+        const od2 = document.getElementById("ondeck2-label");
+        if (data.ondeck1 != null) {
+          document.getElementById("ondeck1-num").textContent = "#" + data.ondeck1;
+          od1.classList.add("visible");
+        } else {
+          od1.classList.remove("visible");
+        }
+        if (data.ondeck2 != null) {
+          document.getElementById("ondeck2-num").textContent = "#" + data.ondeck2;
+          od2.classList.add("visible");
+        } else {
+          od2.classList.remove("visible");
+        }
+
+        const bannerEl = document.getElementById("winner-banner");
+        const hasWinner = !!data.winner;
+        document.querySelector(".match-badge").style.display = hasWinner ? "none" : "";
+        document.getElementById("timer").style.display = hasWinner ? "none" : "";
+        document.querySelector(".team1-wrapper").style.visibility = hasWinner ? "hidden" : "";
+        document.querySelector(".team2-wrapper").style.visibility = hasWinner ? "hidden" : "";
+        document.getElementById("arrows").style.display = hasWinner ? "none" : "";
+        if (hasWinner) {
+          const isTeam1 = data.winner === "team1";
+          bannerEl.className = "winner-banner visible " + data.winner;
+          document.getElementById("winner-name").textContent = isTeam1 ? (data.team1Name ?? "Blue") : (data.team2Name ?? "Red");
+        } else {
+          bannerEl.className = "winner-banner";
+        }
+
+        if (data.timerEnd !== timerEnd) {
+          timerEnd = data.timerEnd;
+          if (timerEnd) {
+            document.getElementById("timer").classList.remove("hidden");
+            if (!tickInterval) tickInterval = setInterval(tick, 250);
+            tick();
+          } else {
+            clearInterval(tickInterval);
+            tickInterval = null;
+            document.getElementById("timer").classList.add("hidden");
           }
-        } catch (e) {
-          // silently retry
+        }
+      }
+
+      function applyRvbTeams(data) {
+        document.getElementById("rvb-blue1").textContent = "#" + (data.rvbBlue1 ?? 1);
+        document.getElementById("rvb-blue2").textContent = "#" + (data.rvbBlue2 ?? 2);
+        document.getElementById("rvb-red1").textContent = "#" + (data.rvbRed1 ?? 3);
+        document.getElementById("rvb-red2").textContent = "#" + (data.rvbRed2 ?? 4);
+      }
+
+      async function pollRvbScores() {
+        try {
+          const res = await fetch("/api/rvb-scores");
+          if (!res.ok) return;
+          const data = await res.json();
+          document.getElementById("rvb-blue-score").textContent = String(data.blueScore ?? 0);
+          document.getElementById("rvb-red-score").textContent = String(data.redScore ?? 0);
+          document.getElementById("rvb-blue-auto").textContent = String(data.blueAutoScore ?? 0);
+          document.getElementById("rvb-red-auto").textContent = String(data.redAutoScore ?? 0);
+          document.getElementById("rvb-blue-pens").textContent = String(data.bluePens ?? 0);
+          document.getElementById("rvb-red-pens").textContent = String(data.redPens ?? 0);
+          document.getElementById("rvb-phase").textContent = data.displayedPhase || "Controllers Down";
+          document.getElementById("rvb-time").textContent = String(data.timeRemaining ?? 0);
+        } catch {
+          // keep retrying
         }
       }
 
