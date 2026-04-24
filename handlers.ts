@@ -26,6 +26,12 @@ export interface AppsScriptResponse {
   redTeamName: string;
   blueTeamMembers: string;
   redTeamMembers: string;
+  blueTeam2Number?: number | string;
+  redTeam2Number?: number | string;
+  blueTeam2Name?: string;
+  redTeam2Name?: string;
+  blueTeam2Members?: string;
+  redTeam2Members?: string;
   blueOnDeck: number;
   redOnDeck: number;
 }
@@ -61,11 +67,25 @@ export function normalizeRvbServerIp(input: string): string {
   }
 }
 
+function toTeamNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function toText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
 export function mapSheetData(data: AppsScriptResponse): {
   match: number; team1: number; team2: number;
   team1Name: string; team2Name: string;
   team1Members: string; team2Members: string;
   ondeck1: number | null; ondeck2: number | null;
+  rvbBlue1: number; rvbBlue2: number | null;
+  rvbRed1: number; rvbRed2: number | null;
+  rvbBlue1Name: string; rvbBlue2Name: string;
+  rvbRed1Name: string; rvbRed2Name: string;
+  rvbBlue1Members: string; rvbBlue2Members: string;
+  rvbRed1Members: string; rvbRed2Members: string;
 } | null {
   const { matchNumber: match, blueTeamNumber: team1, redTeamNumber: team2 } = data;
   if (!match || !team1 || !team2) return null;
@@ -79,6 +99,18 @@ export function mapSheetData(data: AppsScriptResponse): {
     team2Members: data.redTeamMembers || "",
     ondeck1: data.blueOnDeck || null,
     ondeck2: data.redOnDeck || null,
+    rvbBlue1: team1,
+    rvbBlue2: toTeamNumber(data.blueTeam2Number),
+    rvbRed1: team2,
+    rvbRed2: toTeamNumber(data.redTeam2Number),
+    rvbBlue1Name: data.blueTeamName || "",
+    rvbBlue2Name: toText(data.blueTeam2Name),
+    rvbRed1Name: data.redTeamName || "",
+    rvbRed2Name: toText(data.redTeam2Name),
+    rvbBlue1Members: data.blueTeamMembers || "",
+    rvbBlue2Members: toText(data.blueTeam2Members),
+    rvbRed1Members: data.redTeamMembers || "",
+    rvbRed2Members: toText(data.redTeam2Members),
   };
 }
 

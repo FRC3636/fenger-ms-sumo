@@ -70,6 +70,18 @@ describe("mapSheetData", () => {
       team2Members: "Carol, Dave",
       ondeck1: 789,
       ondeck2: 999,
+      rvbBlue1: 123,
+      rvbBlue2: null,
+      rvbRed1: 456,
+      rvbRed2: null,
+      rvbBlue1Name: "Sparky",
+      rvbBlue2Name: "",
+      rvbRed1Name: "Chomper",
+      rvbRed2Name: "",
+      rvbBlue1Members: "Alice, Bob",
+      rvbBlue2Members: "",
+      rvbRed1Members: "Carol, Dave",
+      rvbRed2Members: "",
     });
   });
 
@@ -95,6 +107,34 @@ describe("mapSheetData", () => {
     const row = mapSheetData({ ...fullSheet, blueOnDeck: 0, redOnDeck: 0 });
     expect(row?.ondeck1).toBeNull();
     expect(row?.ondeck2).toBeNull();
+  });
+
+  test("maps RvB second-team fields when present", () => {
+    const row = mapSheetData({
+      ...fullSheet,
+      blueTeam2Number: 124,
+      blueTeam2Name: "Zapper",
+      blueTeam2Members: "Eve, Frank",
+      redTeam2Number: 457,
+      redTeam2Name: "Muncher",
+      redTeam2Members: "Gabe, Hana",
+    });
+    expect(row?.rvbBlue2).toBe(124);
+    expect(row?.rvbRed2).toBe(457);
+    expect(row?.rvbBlue2Name).toBe("Zapper");
+    expect(row?.rvbRed2Name).toBe("Muncher");
+    expect(row?.rvbBlue2Members).toBe("Eve, Frank");
+    expect(row?.rvbRed2Members).toBe("Gabe, Hana");
+  });
+
+  test("RvB second-team is null when #N/A string", () => {
+    const row = mapSheetData({
+      ...fullSheet,
+      blueTeam2Number: "#N/A",
+      redTeam2Number: "#N/A",
+    });
+    expect(row?.rvbBlue2).toBeNull();
+    expect(row?.rvbRed2).toBeNull();
   });
 });
 

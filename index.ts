@@ -219,12 +219,31 @@ Bun.serve({
         try { body = await req.json() as { winner?: string }; } catch { /* optional body */ }
         const winner = body.winner ?? state.winner;
         const redWin = winner === "team2";
-        log("api", CYAN, `POST /api/export  match=${state.match}  winner=${winner}  redWin=${redWin}`);
+        const payload: Record<string, unknown> = {
+          token: TOKEN,
+          matchNumber: state.match,
+          redWin,
+          gameMode: state.gameMode,
+        };
+        if (state.gameMode === "rvb") {
+          try {
+            const scores = await fetchRvbScores(state.rvbServerIp);
+            payload.blueScore = scores.blueScore;
+            payload.redScore = scores.redScore;
+            payload.blueAutoScore = scores.blueAutoScore;
+            payload.redAutoScore = scores.redAutoScore;
+            payload.bluePens = scores.bluePens;
+            payload.redPens = scores.redPens;
+          } catch (err) {
+            log("api", YELLOW, "POST /api/export — RvB score fetch failed, exporting winner only:", err);
+          }
+        }
+        log("api", CYAN, `POST /api/export  mode=${state.gameMode}  match=${state.match}  winner=${winner}  redWin=${redWin}`);
         try {
           const res = await fetch(APPS_SCRIPT_BASE, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: TOKEN, matchNumber: state.match, redWin }),
+            body: JSON.stringify(payload),
             redirect: "follow",
           });
           const text = await res.text();
