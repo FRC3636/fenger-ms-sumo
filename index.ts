@@ -85,7 +85,7 @@ async function postRvbAction(serverIp: string, action: string, count = 1) {
 
 async function fetchAppsScript(autoAddTeams = false): Promise<AppsScriptResponse | null> {
   const url = autoAddTeams ? `${APPS_SCRIPT_URL}&autoAddTeams=true` : APPS_SCRIPT_URL;
-  log("sheet", CYAN, `fetching data from Apps Script...${autoAddTeams ? " (tournament mode)" : ""}`);
+  log("sheet", CYAN, `fetching data from Apps Script...${autoAddTeams ? " (auto add teams)" : ""}`);
   try {
     const res = await fetch(url, { redirect: "follow" });
     if (!res.ok) {
