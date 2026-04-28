@@ -6,6 +6,16 @@ This file provides guidance to LLM coding agents when working with code in this 
 
 OBS overlay + admin panel for two game modes: Sumo and Red vs Blue (RvB). Run with `bun --hot index.ts`.
 
+Documentation lives in `docs/`:
+- `docs/README.md` — overview and quick links
+- `docs/SETUP.md` — installation, configuration, OBS setup
+- `docs/USAGE.md` — admin panel and overlay user guide
+- `docs/API.md` — HTTP API reference
+- `docs/DEVELOPMENT.md` — developer guide
+- `docs/ARCHITECTURE.md` — technical overview and data flows
+
+If you add new features or change configuration/workflows, update the relevant docs files to keep them current.
+
 - `index.ts` — Bun.serve() API server with in-memory state
 - `admin.html` — Control panel at `/` for both modes: Sumo match controls and RvB scoring controls
 - `overlay.html` — Transparent OBS Browser Source at `/overlay`, polls `/api/state` every second and switches layout by mode
