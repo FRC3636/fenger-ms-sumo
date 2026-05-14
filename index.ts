@@ -131,6 +131,7 @@ const state: State = {
 };
 
 Bun.serve({
+  idleTimeout: 30,
   routes: {
     "/": adminHtml,
     "/overlay": overlayHtml,
